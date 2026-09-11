@@ -3,7 +3,7 @@ import base64
 import numpy as np
 import streamlit as st
 from PIL import Image, ImageDraw
-from streamlit_drawable_canvas import st_canvas
+import streamlit.components.v1 as components
 
 # Configuración de la página
 st.set_page_config(
@@ -11,45 +11,6 @@ st.set_page_config(
     page_icon="🖱️",
     layout="centered"
 )
-
-# Genera el fondo visual con la cuadrícula de cuadernillo
-def generate_grid_background(grid_size, canvas_dim=320):
-    grid_img = Image.new("RGBA", (canvas_dim, canvas_dim), (255, 255, 255, 255))
-    draw = ImageDraw.Draw(grid_img)
-    cell_size = canvas_dim / grid_size
-    
-    for x in range(grid_size + 1):
-        pos = int(x * cell_size)
-        draw.line([(pos, 0), (pos, canvas_dim)], fill=(200, 200, 200, 255), width=1)
-        
-    for y in range(grid_size + 1):
-        pos = int(y * cell_size)
-        draw.line([(0, pos), (canvas_dim, pos)], fill=(200, 200, 200, 255), width=1)
-        
-    return grid_img
-
-# ALGORITMO DE PIXEL ART REAL: Ajusta cualquier trazo a cuadrados de la matriz
-def snap_canvas_to_grid(canvas_data, grid_size):
-    h, w, _ = canvas_data.shape
-    cell_h = h // grid_size
-    cell_w = w // grid_size
-    
-    # Crear matriz de píxeles puros de la resolución seleccionada (ej: 16x16 o 32x32)
-    grid_matrix = np.zeros((grid_size, grid_size, 4), dtype=np.uint8)
-    
-    for r in range(grid_size):
-        for c in range(grid_size):
-            cell = canvas_data[r*cell_h:(r+1)*cell_h, c*cell_w:(c+1)*cell_w]
-            # Si se dibujó algo dentro del recuadro (Alpha > 20)
-            mask = cell[:, :, 3] > 20
-            if np.any(mask):
-                # Obtener el color dibujado y pintar el cuadrito completo
-                avg_color = cell[mask].mean(axis=0).astype(np.uint8)
-                avg_color[3] = 255 # Opacidad completa
-                grid_matrix[r, c] = avg_color
-                
-    return Image.fromarray(grid_matrix, "RGBA")
-
 
 # Inicializar almacenamiento de la comunidad en la sesión
 if "community_cursors" not in st.session_state:
@@ -94,7 +55,7 @@ st.title("🖱️ DrawMyMouse")
 st.caption("Diseña, dibuja y comparte tus propios cursores en la comunidad.")
 
 # Pestañas principales
-tab1, tab2, tab3 = st.tabs(["🖼️ Convertir Imagen", "👾 Dibujar Cursor 8-Bit", "🌐 Cursores de la Comunidad"])
+tab1, tab2, tab3 = st.tabs(["🖼️ Convertir Imagen", "👾 Editor Pixel Art 8-Bit", "🌐 Cursores de la Comunidad"])
 
 
 # =========================================================
@@ -131,7 +92,7 @@ with tab1:
             st.image(cursor_img, caption=f"Vista previa ({size}x{size}px)", width=128)
 
         st.divider()
-        st.markdown("### 📥 Descargas y Exportación")
+        st.markdown("**📥 Descargas y Exportación**")
         
         buf_ico = io.BytesIO()
         cursor_img.save(buf_ico, format="ICO")
@@ -166,118 +127,159 @@ with tab1:
 
 
 # =========================================================
-# PESTAÑA 2: DIBUJAR CURSOR 8-BITS / PAINT
+# PESTAÑA 2: EDITOR PIXEL ART 8-BIT NATIVO (CUADRÍCULA REAL)
 # =========================================================
 with tab2:
-    st.subheader("Editor de Diseño")
+    st.subheader("Editor de Píxeles 8-Bit")
+    st.caption("Pinta directamente cuadro por cuadro sobre la cuadrícula.")
+
+    pixel_editor_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <style>
+        body { font-family: system-ui, sans-serif; color: #ffffff; background: transparent; margin: 0; padding: 0; }
+        .editor-container { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .toolbar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; background: #1e222a; padding: 10px 16px; border-radius: 8px; width: 100%; max-width: 360px; box-sizing: border-box; }
+        .toolbar label { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .toolbar input[type="color"] { border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; background: none; }
+        .toolbar select, .toolbar button { background: #2b303c; color: white; border: 1px solid #3d4454; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s; }
+        .toolbar button.active { background: #ff4b4b; border-color: #ff4b4b; font-weight: bold; }
+        .toolbar button:hover { background: #3d4454; }
+        .canvas-box { position: relative; width: 320px; height: 320px; border: 2px solid #3d4454; border-radius: 8px; overflow: hidden; background: #ffffff; cursor: crosshair; }
+        canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+        .action-btns { display: flex; gap: 10px; width: 100%; max-width: 360px; }
+        .btn-dl { flex: 1; background: #ff4b4b; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; text-decoration: none; }
+        .btn-dl:hover { background: #e03e3e; }
+    </style>
+    </head>
+    <body>
+
+    <div class="editor-container">
+        <div class="toolbar">
+            <label>Color: <input type="color" id="colorPicker" value="#8A0303"></label>
+            <button id="btnPencil" class="active" onclick="setTool('pencil')">✏️ Pincel</button>
+            <button id="btnEraser" onclick="setTool('eraser')">🧹 Borrador</button>
+            <button id="btnClear" onclick="clearCanvas()">🗑️ Limpiar</button>
+            <select id="gridSizeSelect" onchange="changeGridSize(this.value)">
+                <option value="16" selected>Grid: 16x16 (Clásico)</option>
+                <option value="24">Grid: 24x24</option>
+                <option value="32">Grid: 32x32</option>
+            </select>
+        </div>
+
+        <div class="canvas-box">
+            <canvas id="pixelCanvas" width="320" height="320"></canvas>
+        </div>
+
+        <div class="action-btns">
+            <a id="downloadPng" class="btn-dl" download="cursor_8bit.png">🖼️ Descargar PNG</a>
+            <a id="downloadIco" class="btn-dl" download="cursor_8bit.ico">📥 Descargar .ICO</a>
+        </div>
+    </div>
+
+    <script>
+        let gridSize = 16;
+        const displaySize = 320;
+        let isDrawing = false;
+        let currentTool = 'pencil';
+        
+        // Canvas oculto para almacenar la matriz de píxeles reales (ej: 16x16)
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = gridSize;
+        offCanvas.height = gridSize;
+        const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+
+        // Canvas principal visible (320x320)
+        const canvas = document.getElementById('pixelCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function initGrid() {
+            offCanvas.width = gridSize;
+            offCanvas.height = gridSize;
+            offCtx.clearRect(0, 0, gridSize, gridSize);
+            render();
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, displaySize, displaySize);
+            
+            // 1. Dibujar la imagen pixelada escalada
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(offCanvas, 0, 0, displaySize, displaySize);
+
+            // 2. Dibujar la cuadrícula visible de cuadritos
+            const cellSize = displaySize / gridSize;
+            ctx.strokeStyle = 'rgba(180, 180, 180, 0.5)';
+            ctx.lineWidth = 1;
+
+            ctx.beginPath();
+            for (let i = 0; i <= gridSize; i++) {
+                let pos = Math.floor(i * cellSize) + 0.5;
+                ctx.moveTo(pos, 0);
+                ctx.lineTo(pos, displaySize);
+                ctx.moveTo(0, pos);
+                ctx.lineTo(displaySize, pos);
+            }
+            ctx.stroke();
+
+            updateDownloadLinks();
+        }
+
+        function paintCell(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const cellSize = displaySize / gridSize;
+            const gridX = Math.floor(mouseX / cellSize);
+            const gridY = Math.floor(mouseY / cellSize);
+
+            if (gridX >= 0 && gridX < gridSize && gridY >= 0 && gridY < gridSize) {
+                if (currentTool === 'pencil') {
+                    const color = document.getElementById('colorPicker').value;
+                    offCtx.fillStyle = color;
+                    offCtx.fillRect(gridX, gridY, 1, 1);
+                } else if (currentTool === 'eraser') {
+                    offCtx.clearRect(gridX, gridY, 1, 1);
+                }
+                render();
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => { isDrawing = true; paintCell(e); });
+        canvas.addEventListener('mousemove', (e) => { if (isDrawing) paintCell(e); });
+        window.addEventListener('mouseup', () => { isDrawing = false; });
+
+        function setTool(tool) {
+            currentTool = tool;
+            document.getElementById('btnPencil').classList.toggle('active', tool === 'pencil');
+            document.getElementById('btnEraser').classList.toggle('active', tool === 'eraser');
+        }
+
+        function clearCanvas() {
+            offCtx.clearRect(0, 0, gridSize, gridSize);
+            render();
+        }
+
+        function changeGridSize(val) {
+            gridSize = parseInt(val);
+            initGrid();
+        }
+
+        function updateDownloadLinks() {
+            const dataUrl = offCanvas.toDataURL('image/png');
+            document.getElementById('downloadPng').href = dataUrl;
+            document.getElementById('downloadIco').href = dataUrl;
+        }
+
+        initGrid();
+    </script>
+    </body>
+    </html>
+    """
     
-    draw_mode_type = st.radio(
-        "Modo de creación:",
-        ["👾 Modo Píxeles (Matriz 8-Bit)", "🎨 Modo Paint (Trazo Libre)"],
-        horizontal=True
-    )
-
-    col_ctrl1, col_ctrl2 = st.columns(2)
-    with col_ctrl1:
-        draw_color = st.color_picker("Color del pincel:", "#8A0303")
-        tool = st.radio("Herramienta:", ["Pincel", "Borrador"], horizontal=True)
-    
-    with col_ctrl2:
-        if "8-Bit" in draw_mode_type:
-            grid_size = st.selectbox("Cuadrícula (Píxeles):", [16, 24, 32], index=0, help="16x16 es el estándar clásico de 8 bits.")
-            cell_px = 320 // grid_size
-            brush_size = cell_px
-            bg_image = generate_grid_background(grid_size)
-        else:
-            grid_size = st.selectbox("Resolución final:", [16, 32, 48], index=1)
-            brush_size = st.slider("Grosor del pincel libre:", min_value=4, max_value=28, value=12, step=2)
-            bg_image = None
-
-    stroke_color = draw_color if tool == "Pincel" else "rgba(0,0,0,0)"
-
-    st.caption("🎨 Pasa el pincel sobre los cuadritos para pintar celdas completas:")
-    
-    canvas_result = st_canvas(
-        fill_color="rgba(0, 0, 0, 0)",
-        stroke_width=brush_size,
-        stroke_color=stroke_color,
-        background_color="#F0F2F6" if bg_image is None else None,
-        background_image=bg_image,
-        height=320,
-        width=320,
-        drawing_mode="freedraw",
-        key=f"canvas_mode_{draw_mode_type}_{grid_size}",
-    )
-
-    if canvas_result is not None:
-        try:
-            canvas_data = canvas_result.image_data
-            if canvas_data is not None and np.any(canvas_data):
-                drawn_data = canvas_data.astype(np.uint8)
-                
-                if "8-Bit" in draw_mode_type:
-                    # Rellenar cuadritos completos en la matriz
-                    pixel_cursor = snap_canvas_to_grid(drawn_data, grid_size)
-                    # Escalar con bordes perfectos para vista previa
-                    preview_grid = pixel_cursor.resize((320, 320), Image.Resampling.NEAREST)
-                else:
-                    img_drawn = Image.fromarray(drawn_data, "RGBA")
-                    pixel_cursor = img_drawn.resize((grid_size, grid_size), Image.Resampling.BILINEAR)
-                    preview_grid = pixel_cursor.resize((128, 128), Image.Resampling.NEAREST)
-                
-                st.divider()
-                col_res1, col_res2 = st.columns(2)
-                
-                with col_res1:
-                    st.write("**Resultado Pixel Art (8-Bit):**")
-                    if "8-Bit" in draw_mode_type:
-                        st.image(preview_grid, caption=f"Matriz de {grid_size}x{grid_size} píxeles perfectos", width=220)
-                    else:
-                        st.image(pixel_cursor, caption=f"Cursor {grid_size}x{grid_size}px", width=128)
-                    
-                with col_res2:
-                    st.write("**Exportar diseño:**")
-                    
-                    buf_art_ico = io.BytesIO()
-                    pixel_cursor.save(buf_art_ico, format="ICO")
-                    
-                    buf_art_png = io.BytesIO()
-                    pixel_cursor.save(buf_art_png, format="PNG")
-                    
-                    st.download_button(
-                        label="📥 Descargar (.ico)",
-                        data=buf_art_ico.getvalue(),
-                        file_name="cursor_8bit.ico",
-                        mime="image/x-icon",
-                        use_container_width=True
-                    )
-                    
-                    st.download_button(
-                        label="🖼️ Descargar PNG",
-                        data=buf_art_png.getvalue(),
-                        file_name="cursor_8bit.png",
-                        mime="image/png",
-                        use_container_width=True
-                    )
-                
-                # Publicación a la comunidad
-                with st.expander("🚀 ¿Quieres publicar este diseño en la Comunidad?"):
-                    with st.form("publish_form"):
-                        pub_title = st.text_input("Nombre de tu Mouse:", "Pixel Cursor 8-Bit")
-                        pub_author = st.text_input("Tu Nombre/Alias:", "PixelArtist")
-                        submit_pub = st.form_submit_button("🌟 Publicar Gratis para Todos")
-                        
-                        if submit_pub:
-                            st.session_state.community_cursors.append({
-                                "title": pub_title,
-                                "author": pub_author,
-                                "png_bytes": buf_art_png.getvalue(),
-                                "ico_bytes": buf_art_ico.getvalue(),
-                                "preview_img": pixel_cursor
-                            })
-                            st.success(f"¡Genial! Tu cursor '{pub_title}' se ha publicado en la pestaña Comunidad.")
-        except Exception:
-            pass
+    components.html(pixel_editor_html, height=480)
 
 
 # =========================================================
@@ -320,7 +322,7 @@ with tab3:
         for idx, item in enumerate(reversed(st.session_state.community_cursors)):
             col = cols[idx % 3]
             with col:
-                st.markdown(f"#### {item['title']}")
+                st.markdown(f"**{item['title']}**")
                 st.caption(f"👤 Por: **{item['author']}**")
                 
                 preview_large_comm = item['preview_img'].resize((96, 96), Image.Resampling.NEAREST)
