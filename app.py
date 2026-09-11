@@ -6,6 +6,22 @@ from PIL import Image, ImageDraw
 import streamlit.components.v1 as components
 from streamlit_drawable_canvas import st_canvas
 
+# Función auxiliar para generar archivos .CUR reales con cabecera de cursor de Windows
+def image_to_cur_bytes(img: Image.Image, hotspot=(0, 0)) -> bytes:
+    buf = io.BytesIO()
+    img.save(buf, format="ICO", sizes=[(img.width, img.height)])
+    data = bytearray(buf.getvalue())
+    if len(data) >= 14:
+        # Modificar cabecera ICO (1) a CUR (2)
+        data[2] = 2
+        data[3] = 0
+        # Configurar Hotspot (punto de activación X, Y)
+        data[10] = hotspot[0] & 0xFF
+        data[11] = (hotspot[0] >> 8) & 0xFF
+        data[12] = hotspot[1] & 0xFF
+        data[13] = (hotspot[1] >> 8) & 0xFF
+    return bytes(data)
+
 # Configuración de la página
 st.set_page_config(
     page_title="DrawMyMouse — Pixel Cursor Studio",
@@ -38,15 +54,14 @@ if "community_cursors" not in st.session_state:
         (demo2, "Cyber Blade", "MatrixDev"),
         (demo3, "Gothic Cross", "PixelArtist")
     ]:
-        buf_png = io.BytesIO()
-        demo_img.save(buf_png, format="PNG")
+        buf_cur = image_to_cur_bytes(demo_img)
         buf_ico = io.BytesIO()
         demo_img.save(buf_ico, format="ICO")
         
         st.session_state.community_cursors.append({
             "title": title,
             "author": author,
-            "png_bytes": buf_png.getvalue(),
+            "cur_bytes": buf_cur,
             "ico_bytes": buf_ico.getvalue(),
             "preview_img": demo_img
         })
@@ -64,7 +79,7 @@ tab1, tab2, tab3 = st.tabs(["🖼️ Convertir Imagen", "🎨 Editor de Diseño"
 # =========================================================
 with tab1:
     st.subheader("Convertir imagen a cursor")
-    st.write("Sube cualquier imagen para transformarla en un puntero `.ico` o `.png`.")
+    st.write("Sube cualquier imagen para transformarla en un puntero `.cur` o `.ico`.")
     
     uploaded_file = st.file_uploader(
         "Carga tu imagen (PNG con transparencia recomendado):",
@@ -95,14 +110,21 @@ with tab1:
         st.divider()
         st.markdown("**📥 Descargas y Exportación**")
         
+        cur_bytes = image_to_cur_bytes(cursor_img)
+        
         buf_ico = io.BytesIO()
         cursor_img.save(buf_ico, format="ICO")
         
-        buf_png = io.BytesIO()
-        cursor_img.save(buf_png, format="PNG")
-        
         col_d1, col_d2 = st.columns(2)
         with col_d1:
+            st.download_button(
+                label="🖱️ Descargar Cursor (.cur)",
+                data=cur_bytes,
+                file_name="drawmymouse_cursor.cur",
+                mime="image/x-win-bitmap",
+                use_container_width=True
+            )
+        with col_d2:
             st.download_button(
                 label="📥 Descargar Cursor (.ico)",
                 data=buf_ico.getvalue(),
@@ -110,15 +132,9 @@ with tab1:
                 mime="image/x-icon",
                 use_container_width=True
             )
-        with col_d2:
-            st.download_button(
-                label="🖼️ Descargar PNG",
-                data=buf_png.getvalue(),
-                file_name="drawmymouse_cursor.png",
-                mime="image/png",
-                use_container_width=True
-            )
         
+        buf_png = io.BytesIO()
+        cursor_img.save(buf_png, format="PNG")
         encoded_png = base64.b64encode(buf_png.getvalue()).decode()
         with st.expander("🌐 Código CSS para tu Web"):
             st.code(
@@ -188,7 +204,7 @@ with tab2:
             </div>
 
             <div class="action-btns">
-                <a id="downloadPng" class="btn-dl" download="cursor_8bit.png">🖼️ Descargar PNG</a>
+                <a id="downloadCur" class="btn-dl" download="cursor_8bit.cur">🖱️ Descargar .CUR</a>
                 <a id="downloadIco" class="btn-dl" download="cursor_8bit.ico">📥 Descargar .ICO</a>
             </div>
         </div>
@@ -280,7 +296,7 @@ with tab2:
 
             function updateDownloadLinks() {{
                 const dataUrl = offCanvas.toDataURL('image/png');
-                document.getElementById('downloadPng').href = dataUrl;
+                document.getElementById('downloadCur').href = dataUrl;
                 document.getElementById('downloadIco').href = dataUrl;
             }}
 
@@ -309,7 +325,6 @@ with tab2:
         _, col_canvas_center, _ = st.columns([1, 6, 1])
         
         with col_canvas_center:
-            # Sub-contenedor flex para asegurar alineación central
             st.markdown(f"<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
             
             canvas_result = st_canvas(
@@ -342,24 +357,23 @@ with tab2:
                     
                     with col_p2:
                         st.write("**Exportar diseño:**")
+                        buf_p_cur = image_to_cur_bytes(cursor_paint)
+                        
                         buf_p_ico = io.BytesIO()
                         cursor_paint.save(buf_p_ico, format="ICO")
                         
-                        buf_p_png = io.BytesIO()
-                        cursor_paint.save(buf_p_png, format="PNG")
-                        
+                        st.download_button(
+                            label="🖱️ Descargar (.cur)",
+                            data=buf_p_cur,
+                            file_name="cursor_paint.cur",
+                            mime="image/x-win-bitmap",
+                            use_container_width=True
+                        )
                         st.download_button(
                             label="📥 Descargar (.ico)",
                             data=buf_p_ico.getvalue(),
                             file_name="cursor_paint.ico",
                             mime="image/x-icon",
-                            use_container_width=True
-                        )
-                        st.download_button(
-                            label="🖼️ Descargar PNG",
-                            data=buf_p_png.getvalue(),
-                            file_name="cursor_paint.png",
-                            mime="image/png",
                             use_container_width=True
                         )
             except Exception:
@@ -373,9 +387,9 @@ with tab3:
     st.subheader("🌐 Cursores Creados por la Comunidad")
     st.write("Explora, descarga gratis o publica tus propios diseños hechos en DrawMyMouse.")
     
-    with st.expander("📤 Subir un archivo de Mouse (.png / .ico) a la comunidad"):
+    with st.expander("📤 Subir un archivo de Mouse (.cur / .ico / .png) a la comunidad"):
         with st.form("upload_community_form"):
-            comm_file = st.file_uploader("Elige tu imagen de cursor:", type=["png", "ico"])
+            comm_file = st.file_uploader("Elige tu imagen de cursor:", type=["cur", "ico", "png"])
             comm_title = st.text_input("Título del Cursor:", "Neon Pointer")
             comm_author = st.text_input("Autor:", "DiseñadorWeb")
             submit_upload = st.form_submit_button("Subir a la Comunidad")
@@ -383,15 +397,14 @@ with tab3:
             if submit_upload and comm_file:
                 upload_img = Image.open(comm_file).convert("RGBA").resize((32, 32), Image.Resampling.NEAREST)
                 
-                b_png = io.BytesIO()
-                upload_img.save(b_png, format="PNG")
+                b_cur = image_to_cur_bytes(upload_img)
                 b_ico = io.BytesIO()
                 upload_img.save(b_ico, format="ICO")
                 
                 st.session_state.community_cursors.append({
                     "title": comm_title,
                     "author": comm_author,
-                    "png_bytes": b_png.getvalue(),
+                    "cur_bytes": b_cur,
                     "ico_bytes": b_ico.getvalue(),
                     "preview_img": upload_img
                 })
@@ -413,19 +426,19 @@ with tab3:
                 st.image(preview_large_comm)
                 
                 st.download_button(
+                    label="🖱️ .CUR",
+                    data=item['cur_bytes'],
+                    file_name=f"{item['title'].lower().replace(' ', '_')}.cur",
+                    mime="image/x-win-bitmap",
+                    key=f"dl_cur_{idx}",
+                    use_container_width=True
+                )
+                st.download_button(
                     label="📥 .ICO",
                     data=item['ico_bytes'],
                     file_name=f"{item['title'].lower().replace(' ', '_')}.ico",
                     mime="image/x-icon",
                     key=f"dl_ico_{idx}",
-                    use_container_width=True
-                )
-                st.download_button(
-                    label="🖼️ .PNG",
-                    data=item['png_bytes'],
-                    file_name=f"{item['title'].lower().replace(' ', '_')}.png",
-                    mime="image/png",
-                    key=f"dl_png_{idx}",
                     use_container_width=True
                 )
                 st.markdown("---")
