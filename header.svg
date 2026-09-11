@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 130" width="100%" height="130">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@900&amp;display=swap');
+      
+      text {
+        font-family: 'Fira Code', monospace, sans-serif;
+        font-size: 52px;
+        font-weight: 900;
+      }
+
+      /* ROJO SANGRE (Draw) */
+      .draw {
+        fill: #8A0303;
+        animation: neonFlickerRed 3s infinite;
+      }
+      .drip-red {
+        fill: #8A0303;
+        animation: neonFlickerRed 3s infinite, dripDrop 2.2s infinite ease-in;
+      }
+
+      /* AZUL NOCHE OSCURO (My) */
+      .my {
+        fill: #001A66;
+        animation: neonFlickerBlue 2.5s infinite;
+      }
+      .drip-blue {
+        fill: #001A66;
+        animation: neonFlickerBlue 2.5s infinite, dripDrop 2.7s infinite ease-in;
+      }
+
+      /* MORADO OSCURO (Mouse) */
+      .mouse {
+        fill: #3B0764;
+        animation: neonFlickerPurple 3.2s infinite;
+      }
+      .drip-purple {
+        fill: #3B0764;
+        animation: neonFlickerPurple 3.2s infinite, dripDrop 2.4s infinite ease-in;
+      }
+
+      /* ANIMACIONES NEÓN PARPADEANTE */
+      @keyframes neonFlickerRed {
+        0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #FF0000) drop-shadow(0 0 16px #8A0303); }
+        15% { opacity: 0.15; filter: none; }
+        17% { opacity: 1; filter: drop-shadow(0 0 10px #FF0000); }
+        28% { opacity: 0.3; filter: none; }
+        30% { opacity: 1; filter: drop-shadow(0 0 12px #FF0000); }
+        75% { opacity: 0.2; filter: none; }
+        77% { opacity: 1; filter: drop-shadow(0 0 14px #FF0000); }
+      }
+
+      @keyframes neonFlickerBlue {
+        0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #0055FF) drop-shadow(0 0 16px #001166); }
+        20% { opacity: 0.1; filter: none; }
+        22% { opacity: 1; filter: drop-shadow(0 0 12px #0055FF); }
+        60% { opacity: 0.25; filter: none; }
+        62% { opacity: 1; filter: drop-shadow(0 0 10px #0055FF); }
+      }
+
+      @keyframes neonFlickerPurple {
+        0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #A855F7) drop-shadow(0 0 16px #3B0764); }
+        38% { opacity: 0.2; filter: none; }
+        40% { opacity: 1; filter: drop-shadow(0 0 12px #A855F7); }
+        52% { opacity: 0.35; filter: none; }
+        54% { opacity: 1; filter: drop-shadow(0 0 10px #A855F7); }
+      }
+
+      /* ANIMACIÓN GOTEO */
+      @keyframes dripDrop {
+        0% { transform: translateY(0) scaleY(1); opacity: 1; }
+        65% { transform: translateY(15px) scaleY(1.4); opacity: 0.8; }
+        100% { transform: translateY(28px) scaleY(0.3); opacity: 0; }
+      }
+    </style>
+  </defs>
+
+  <g transform="translate(30, 65)">
+    <!-- TEXTO PRINCIPAL -->
+    <text x="0" y="0" class="draw">Draw</text>
+    <text x="160" y="0" class="my">My</text>
+    <text x="250" y="0" class="mouse">Mouse</text>
+
+    <!-- GOTAS GOTEO (DRAW) -->
+    <path d="M 35,5 C 33,18 28,24 33,28 C 38,32 41,30 38,18 Z" class="drip-red" />
+    <path d="M 105,5 C 103,15 100,20 103,24 C 106,27 108,26 106,16 Z" class="drip-red" style="animation-delay: 0.8s;" />
+
+    <!-- GOTAS GOTEO (MY) -->
+    <path d="M 182,5 C 180,16 177,22 180,26 C 183,29 186,28 184,18 Z" class="drip-blue" style="animation-delay: 0.4s;" />
+    <path d="M 220,5 C 218,18 214,25 217,30 C 221,33 223,31 221,20 Z" class="drip-blue" style="animation-delay: 1.2s;" />
+
+    <!-- GOTAS GOTEO (MOUSE) -->
+    <path d="M 290,5 C 288,15 284,21 287,25 C 290,28 293,27 291,17 Z" class="drip-purple" style="animation-delay: 0.3s;" />
+    <path d="M 355,5 C 353,19 348,26 352,31 C 356,34 359,33 356,21 Z" class="drip-purple" style="animation-delay: 0.9s;" />
+    <path d="M 420,5 C 418,14 415,19 418,23 C 421,26 423,25 421,15 Z" class="drip-purple" style="animation-delay: 1.6s;" />
+  </g>
+</svg>
