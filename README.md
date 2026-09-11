@@ -2,7 +2,7 @@
 
 ---
 
-![Español](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=26&pause=3000&color=722F37&width=300&height=40&lines=Espa%C3%B1ol)
+![Español](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=26&pause=3000&color=8A0303&width=300&height=40&lines=Espa%C3%B1ol)
 
 ### ¿Qué Es?
 Es una app web la cual puedes dibujar tu propio mouse, importarlo y exportarlo. Puedes publicar tus propios mouses en la comunidad, y también puedes importar alguna foto y convertirla en mouse `.ico` o `.cur`.
