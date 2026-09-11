@@ -128,38 +128,44 @@ with tab1:
 
 
 # =========================================================
-# PESTAÑA 2: EDITOR DE DISEÑO (MODO 8-BIT Y MODO PAINT)
+# PESTAÑA 2: EDITOR DE DISEÑO (CENTRADO Y ESCALABLE)
 # =========================================================
 with tab2:
     st.subheader("Editor de Diseño")
     
-    draw_mode_type = st.radio(
-        "Modo de creación:",
-        ["👾 Modo Píxeles (Matriz 8-Bit)", "🎨 Modo Paint (Trazo Libre)"],
-        horizontal=True
-    )
+    col_mode, col_zoom = st.columns([2, 1])
+    with col_mode:
+        draw_mode_type = st.radio(
+            "Modo de creación:",
+            ["👾 Modo Píxeles (Matriz 8-Bit)", "🎨 Modo Paint (Trazo Libre)"],
+            horizontal=True
+        )
+    with col_zoom:
+        canvas_dim = st.slider("🔍 Zoom del Lienzo (px):", min_value=320, max_value=560, value=400, step=40)
+
+    st.divider()
 
     if "8-Bit" in draw_mode_type:
         st.caption("Pinta directamente cuadro por cuadro sobre la cuadrícula.")
 
-        pixel_editor_html = """
+        pixel_editor_html = f"""
         <!DOCTYPE html>
         <html>
         <head>
         <style>
-            body { font-family: system-ui, sans-serif; color: #ffffff; background: transparent; margin: 0; padding: 0; }
-            .editor-container { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-            .toolbar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; background: #1e222a; padding: 10px 16px; border-radius: 8px; width: 100%; max-width: 360px; box-sizing: border-box; }
-            .toolbar label { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-            .toolbar input[type="color"] { border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; background: none; }
-            .toolbar select, .toolbar button { background: #2b303c; color: white; border: 1px solid #3d4454; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s; }
-            .toolbar button.active { background: #ff4b4b; border-color: #ff4b4b; font-weight: bold; }
-            .toolbar button:hover { background: #3d4454; }
-            .canvas-box { position: relative; width: 320px; height: 320px; border: 2px solid #3d4454; border-radius: 8px; overflow: hidden; background: #ffffff; cursor: crosshair; }
-            canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
-            .action-btns { display: flex; gap: 10px; width: 100%; max-width: 360px; }
-            .btn-dl { flex: 1; background: #ff4b4b; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; text-decoration: none; }
-            .btn-dl:hover { background: #e03e3e; }
+            body {{ font-family: system-ui, sans-serif; color: #ffffff; background: transparent; margin: 0; padding: 0; }}
+            .editor-container {{ display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 12px; }}
+            .toolbar {{ display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; background: #1e222a; padding: 10px 16px; border-radius: 8px; width: 100%; max-width: {canvas_dim}px; box-sizing: border-box; }}
+            .toolbar label {{ font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; }}
+            .toolbar input[type="color"] {{ border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; background: none; }}
+            .toolbar select, .toolbar button {{ background: #2b303c; color: white; border: 1px solid #3d4454; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s; }}
+            .toolbar button.active {{ background: #ff4b4b; border-color: #ff4b4b; font-weight: bold; }}
+            .toolbar button:hover {{ background: #3d4454; }}
+            .canvas-box {{ position: relative; width: {canvas_dim}px; height: {canvas_dim}px; border: 2px solid #3d4454; border-radius: 8px; overflow: hidden; background: #ffffff; cursor: crosshair; }}
+            canvas {{ display: block; image-rendering: pixelated; image-rendering: crisp-edges; }}
+            .action-btns {{ display: flex; gap: 10px; width: 100%; max-width: {canvas_dim}px; }}
+            .btn-dl {{ flex: 1; background: #ff4b4b; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; text-align: center; text-decoration: none; }}
+            .btn-dl:hover {{ background: #e03e3e; }}
         </style>
         </head>
         <body>
@@ -178,7 +184,7 @@ with tab2:
             </div>
 
             <div class="canvas-box">
-                <canvas id="pixelCanvas" width="320" height="320"></canvas>
+                <canvas id="pixelCanvas" width="{canvas_dim}" height="{canvas_dim}"></canvas>
             </div>
 
             <div class="action-btns">
@@ -189,26 +195,26 @@ with tab2:
 
         <script>
             let gridSize = 16;
-            const displaySize = 320;
+            const displaySize = {canvas_dim};
             let isDrawing = false;
             let currentTool = 'pencil';
             
             const offCanvas = document.createElement('canvas');
             offCanvas.width = gridSize;
             offCanvas.height = gridSize;
-            const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+            const offCtx = offCanvas.getContext('2d', {{ willReadFrequently: true }});
 
             const canvas = document.getElementById('pixelCanvas');
             const ctx = canvas.getContext('2d');
 
-            function initGrid() {
+            function initGrid() {{
                 offCanvas.width = gridSize;
                 offCanvas.height = gridSize;
                 offCtx.clearRect(0, 0, gridSize, gridSize);
                 render();
-            }
+            }}
 
-            function render() {
+            function render() {{
                 ctx.clearRect(0, 0, displaySize, displaySize);
                 
                 ctx.imageSmoothingEnabled = false;
@@ -219,19 +225,19 @@ with tab2:
                 ctx.lineWidth = 1;
 
                 ctx.beginPath();
-                for (let i = 0; i <= gridSize; i++) {
+                for (let i = 0; i <= gridSize; i++) {{
                     let pos = Math.floor(i * cellSize) + 0.5;
                     ctx.moveTo(pos, 0);
                     ctx.lineTo(pos, displaySize);
                     ctx.moveTo(0, pos);
                     ctx.lineTo(displaySize, pos);
-                }
+                }}
                 ctx.stroke();
 
                 updateDownloadLinks();
-            }
+            }}
 
-            function paintCell(e) {
+            function paintCell(e) {{
                 const rect = canvas.getBoundingClientRect();
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
@@ -240,50 +246,50 @@ with tab2:
                 const gridX = Math.floor(mouseX / cellSize);
                 const gridY = Math.floor(mouseY / cellSize);
 
-                if (gridX >= 0 && gridX < gridSize && gridY >= 0 && gridY < gridSize) {
-                    if (currentTool === 'pencil') {
+                if (gridX >= 0 && gridX < gridSize && gridY >= 0 && gridY < gridSize) {{
+                    if (currentTool === 'pencil') {{
                         const color = document.getElementById('colorPicker').value;
                         offCtx.fillStyle = color;
                         offCtx.fillRect(gridX, gridY, 1, 1);
-                    } else if (currentTool === 'eraser') {
+                    }} else if (currentTool === 'eraser') {{
                         offCtx.clearRect(gridX, gridY, 1, 1);
-                    }
+                    }}
                     render();
-                }
-            }
+                }}
+            }}
 
-            canvas.addEventListener('mousedown', (e) => { isDrawing = true; paintCell(e); });
-            canvas.addEventListener('mousemove', (e) => { if (isDrawing) paintCell(e); });
-            window.addEventListener('mouseup', () => { isDrawing = false; });
+            canvas.addEventListener('mousedown', (e) => {{ isDrawing = true; paintCell(e); }});
+            canvas.addEventListener('mousemove', (e) => {{ if (isDrawing) paintCell(e); }});
+            window.addEventListener('mouseup', () => {{ isDrawing = false; }});
 
-            function setTool(tool) {
+            function setTool(tool) {{
                 currentTool = tool;
                 document.getElementById('btnPencil').classList.toggle('active', tool === 'pencil');
                 document.getElementById('btnEraser').classList.toggle('active', tool === 'eraser');
-            }
+            }}
 
-            function clearCanvas() {
+            function clearCanvas() {{
                 offCtx.clearRect(0, 0, gridSize, gridSize);
                 render();
-            }
+            }}
 
-            function changeGridSize(val) {
+            function changeGridSize(val) {{
                 gridSize = parseInt(val);
                 initGrid();
-            }
+            }}
 
-            function updateDownloadLinks() {
+            function updateDownloadLinks() {{
                 const dataUrl = offCanvas.toDataURL('image/png');
                 document.getElementById('downloadPng').href = dataUrl;
                 document.getElementById('downloadIco').href = dataUrl;
-            }
+            }}
 
             initGrid();
         </script>
         </body>
         </html>
         """
-        components.html(pixel_editor_html, height=480)
+        components.html(pixel_editor_html, height=canvas_dim + 160)
 
     else:
         st.caption("🎨 Dibuja libremente trazos suaves con el pincel:")
@@ -294,36 +300,45 @@ with tab2:
             tool = st.radio("Herramienta:", ["Pincel", "Borrador"], horizontal=True, key="paint_tool")
         
         with col_ctrl2:
-            grid_size = st.selectbox("Resolución final (px):", [16, 32, 48, 64], index=1, key="paint_res")
-            brush_size = st.slider("Grosor del pincel:", min_value=2, max_value=28, value=10, step=2, key="paint_brush")
+            export_res = st.selectbox("Resolución de exportación (px):", [16, 32, 48, 64], index=1, key="paint_res")
+            brush_size = st.slider("Grosor del pincel:", min_value=2, max_value=32, value=12, step=2, key="paint_brush")
 
         stroke_color = draw_color if tool == "Pincel" else "rgba(0,0,0,0)"
 
-        canvas_result = st_canvas(
-            fill_color="rgba(0, 0, 0, 0)",
-            stroke_width=brush_size,
-            stroke_color=stroke_color,
-            background_color="#FFFFFF",
-            height=320,
-            width=320,
-            drawing_mode="freedraw",
-            key="canvas_freedraw_mode",
-        )
+        # Estructura en columnas para forzar el centrado absoluto del cuadro blanco
+        _, col_canvas_center, _ = st.columns([1, 6, 1])
+        
+        with col_canvas_center:
+            # Sub-contenedor flex para asegurar alineación central
+            st.markdown(f"<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
+            
+            canvas_result = st_canvas(
+                fill_color="rgba(0, 0, 0, 0)",
+                stroke_width=brush_size,
+                stroke_color=stroke_color,
+                background_color="#FFFFFF",
+                height=canvas_dim,
+                width=canvas_dim,
+                drawing_mode="freedraw",
+                key="canvas_freedraw_mode",
+            )
+            
+            st.markdown("</div>", unsafe_allow_html=True)
 
-        # Control defensivo contra el RuntimeError interno de streamlit_drawable_canvas
+        # Control defensivo para procesar la exportación del canvas de trazo libre
         if canvas_result is not None:
             try:
                 canvas_data = canvas_result.image_data
                 if canvas_data is not None and np.any(canvas_data):
                     img_drawn = Image.fromarray(canvas_data.astype(np.uint8), "RGBA")
-                    cursor_paint = img_drawn.resize((grid_size, grid_size), Image.Resampling.BILINEAR)
+                    cursor_paint = img_drawn.resize((export_res, export_res), Image.Resampling.BILINEAR)
 
                     st.divider()
                     col_p1, col_p2 = st.columns(2)
                     
                     with col_p1:
                         st.write("**Vista Previa del Cursor:**")
-                        st.image(cursor_paint, caption=f"Tamaño: {grid_size}x{grid_size}px", width=128)
+                        st.image(cursor_paint, caption=f"Tamaño exportado: {export_res}x{export_res}px", width=128)
                     
                     with col_p2:
                         st.write("**Exportar diseño:**")
