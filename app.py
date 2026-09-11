@@ -12,23 +12,44 @@ st.set_page_config(
     layout="centered"
 )
 
-# Función para generar la cuadrícula de 8-bits nativa en PIL (Garantiza ver los cuadritos dentro del iframe)
+# Genera el fondo visual con la cuadrícula de cuadernillo
 def generate_grid_background(grid_size, canvas_dim=320):
     grid_img = Image.new("RGBA", (canvas_dim, canvas_dim), (255, 255, 255, 255))
     draw = ImageDraw.Draw(grid_img)
     cell_size = canvas_dim / grid_size
     
-    # Dibujar líneas verticales de la cuadrícula
     for x in range(grid_size + 1):
         pos = int(x * cell_size)
-        draw.line([(pos, 0), (pos, canvas_dim)], fill=(210, 210, 210, 255), width=1)
+        draw.line([(pos, 0), (pos, canvas_dim)], fill=(200, 200, 200, 255), width=1)
         
-    # Dibujar líneas horizontales de la cuadrícula
     for y in range(grid_size + 1):
         pos = int(y * cell_size)
-        draw.line([(0, pos), (canvas_dim, pos)], fill=(210, 210, 210, 255), width=1)
+        draw.line([(0, pos), (canvas_dim, pos)], fill=(200, 200, 200, 255), width=1)
         
     return grid_img
+
+# ALGORITMO DE PIXEL ART REAL: Ajusta cualquier trazo a cuadrados de la matriz
+def snap_canvas_to_grid(canvas_data, grid_size):
+    h, w, _ = canvas_data.shape
+    cell_h = h // grid_size
+    cell_w = w // grid_size
+    
+    # Crear matriz de píxeles puros de la resolución seleccionada (ej: 16x16 o 32x32)
+    grid_matrix = np.zeros((grid_size, grid_size, 4), dtype=np.uint8)
+    
+    for r in range(grid_size):
+        for c in range(grid_size):
+            cell = canvas_data[r*cell_h:(r+1)*cell_h, c*cell_w:(c+1)*cell_w]
+            # Si se dibujó algo dentro del recuadro (Alpha > 20)
+            mask = cell[:, :, 3] > 20
+            if np.any(mask):
+                # Obtener el color dibujado y pintar el cuadrito completo
+                avg_color = cell[mask].mean(axis=0).astype(np.uint8)
+                avg_color[3] = 255 # Opacidad completa
+                grid_matrix[r, c] = avg_color
+                
+    return Image.fromarray(grid_matrix, "RGBA")
+
 
 # Inicializar almacenamiento de la comunidad en la sesión
 if "community_cursors" not in st.session_state:
@@ -152,7 +173,7 @@ with tab2:
     
     draw_mode_type = st.radio(
         "Modo de creación:",
-        ["👾 Modo Píxeles (Cuadrícula 8-Bit)", "🎨 Modo Paint (Trazo Libre)"],
+        ["👾 Modo Píxeles (Matriz 8-Bit)", "🎨 Modo Paint (Trazo Libre)"],
         horizontal=True
     )
 
@@ -163,10 +184,9 @@ with tab2:
     
     with col_ctrl2:
         if "8-Bit" in draw_mode_type:
-            grid_size = st.selectbox("Grid (Píxeles por lado):", [16, 24, 32], index=0, help="16x16 es el estándar clásico de 8 bits.")
+            grid_size = st.selectbox("Cuadrícula (Píxeles):", [16, 24, 32], index=0, help="16x16 es el estándar clásico de 8 bits.")
             cell_px = 320 // grid_size
-            brush_blocks = st.slider("Bloques por pincelada:", min_value=1, max_value=3, value=1)
-            brush_size = cell_px * brush_blocks
+            brush_size = cell_px
             bg_image = generate_grid_background(grid_size)
         else:
             grid_size = st.selectbox("Resolución final:", [16, 32, 48], index=1)
@@ -175,9 +195,8 @@ with tab2:
 
     stroke_color = draw_color if tool == "Pincel" else "rgba(0,0,0,0)"
 
-    st.caption("🎨 Dibuja dentro del recuadro:")
+    st.caption("🎨 Pasa el pincel sobre los cuadritos para pintar celdas completas:")
     
-    # El fondo de la cuadrícula se inyecta como background_image
     canvas_result = st_canvas(
         fill_color="rgba(0, 0, 0, 0)",
         stroke_width=brush_size,
@@ -195,21 +214,14 @@ with tab2:
             canvas_data = canvas_result.image_data
             if canvas_data is not None and np.any(canvas_data):
                 drawn_data = canvas_data.astype(np.uint8)
-                img_drawn = Image.fromarray(drawn_data, "RGBA")
                 
                 if "8-Bit" in draw_mode_type:
-                    # 1. Reducir al tamaño exacto de la cuadrícula usando NEAREST
-                    img_small = img_drawn.resize((grid_size, grid_size), Image.Resampling.NEAREST)
-                    
-                    # 2. Convertir cualquier trazo en píxeles sólidos puros de 8 bits (sin bordes borrosos)
-                    arr = np.array(img_small)
-                    alpha = arr[:, :, 3]
-                    arr[:, :, 3] = np.where(alpha > 15, 255, 0)
-                    pixel_cursor = Image.fromarray(arr, "RGBA")
-                    
-                    # Generar vista previa en bloques cuadrados ampliados
+                    # Rellenar cuadritos completos en la matriz
+                    pixel_cursor = snap_canvas_to_grid(drawn_data, grid_size)
+                    # Escalar con bordes perfectos para vista previa
                     preview_grid = pixel_cursor.resize((320, 320), Image.Resampling.NEAREST)
                 else:
+                    img_drawn = Image.fromarray(drawn_data, "RGBA")
                     pixel_cursor = img_drawn.resize((grid_size, grid_size), Image.Resampling.BILINEAR)
                     preview_grid = pixel_cursor.resize((128, 128), Image.Resampling.NEAREST)
                 
@@ -217,9 +229,9 @@ with tab2:
                 col_res1, col_res2 = st.columns(2)
                 
                 with col_res1:
-                    st.write("**Resultado Píxel Art (8-Bit):**")
+                    st.write("**Resultado Pixel Art (8-Bit):**")
                     if "8-Bit" in draw_mode_type:
-                        st.image(preview_grid, caption=f"Matriz de {grid_size}x{grid_size} píxeles", width=200)
+                        st.image(preview_grid, caption=f"Matriz de {grid_size}x{grid_size} píxeles perfectos", width=220)
                     else:
                         st.image(pixel_cursor, caption=f"Cursor {grid_size}x{grid_size}px", width=128)
                     
