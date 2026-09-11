@@ -208,7 +208,7 @@ with tab2:
         <style>
             body {{ font-family: system-ui, sans-serif; color: #ffffff; background: transparent; margin: 0; padding: 0; overflow: hidden; }}
             .editor-container {{ display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 14px; padding-bottom: 20px; }}
-            .toolbar {{ display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; background: #1e222a; padding: 10px 16px; border-radius: 8px; width: 100%; max-width: {canvas_dim}px; box-sizing: border-box; }}
+            .toolbar {{ display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; background: #1e222a; padding: 10px 14px; border-radius: 8px; width: 100%; max-width: {canvas_dim}px; box-sizing: border-box; }}
             .toolbar label {{ font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; }}
             .toolbar input[type="color"] {{ border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; background: none; }}
             .toolbar select, .toolbar button {{ background: #2b303c; color: white; border: 1px solid #3d4454; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s; }}
@@ -217,7 +217,7 @@ with tab2:
             .canvas-box {{ position: relative; width: {canvas_dim}px; height: {canvas_dim}px; border: 2px solid #3d4454; border-radius: 8px; overflow: hidden; background: #ffffff; cursor: crosshair; box-sizing: border-box; }}
             canvas {{ display: block; image-rendering: pixelated; image-rendering: crisp-edges; }}
             
-            .action-btns {{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: {canvas_dim}px; box-sizing: border-box; }}
+            .action-btns {{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: {canvas_dim}px; box-sizing: border-box; margin-top: 4px; }}
             .btn-dl {{ display: flex; align-items: center; justify-content: center; background: #2b303c; color: white; border: 1px solid #3d4454; padding: 10px 8px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; text-align: center; text-decoration: none; transition: 0.2s; }}
             .btn-dl:hover {{ background: #3d4454; border-color: #ff4b4b; }}
             .btn-rec {{ background: #ff4b4b; border-color: #ff4b4b; font-weight: bold; color: #ffffff; }}
@@ -229,8 +229,9 @@ with tab2:
         <div class="editor-container">
             <div class="toolbar">
                 <label>Color: <input type="color" id="colorPicker" value="#8A0303"></label>
-                <button id="btnPencil" class="active" onclick="setTool('pencil')">✏️ Pincel (Izquierdo)</button>
-                <button id="btnEraser" onclick="setTool('eraser')">🧹 Borrador (Derecho)</button>
+                <button id="btnPencil" class="active" onclick="setTool('pencil')">✏️ Pincel</button>
+                <button id="btnEraser" onclick="setTool('eraser')">🧹 Borrador</button>
+                <button id="btnUndo" onclick="undoStep()">↩️ Deshacer</button>
                 <button id="btnClear" onclick="clearCanvas()">🗑️ Limpiar</button>
                 <select id="gridSizeSelect" onchange="changeGridSize(this.value)">
                     <option value="16" selected>Grid: 16x16 (Clásico)</option>
@@ -256,6 +257,8 @@ with tab2:
             const displaySize = {canvas_dim};
             let isDrawing = false;
             let currentTool = 'pencil';
+            let historyStack = [];
+            const MAX_HISTORY = 30;
             
             const offCanvas = document.createElement('canvas');
             offCanvas.width = gridSize;
@@ -267,10 +270,26 @@ with tab2:
 
             canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+            function saveState() {{
+                if (historyStack.length >= MAX_HISTORY) {{
+                    historyStack.shift();
+                }}
+                historyStack.push(offCtx.getImageData(0, 0, gridSize, gridSize));
+            }}
+
+            function undoStep() {{
+                if (historyStack.length > 0) {{
+                    const previousState = historyStack.pop();
+                    offCtx.putImageData(previousState, 0, 0);
+                    render();
+                }}
+            }}
+
             function initGrid() {{
                 offCanvas.width = gridSize;
                 offCanvas.height = gridSize;
                 offCtx.clearRect(0, 0, gridSize, gridSize);
+                historyStack = [];
                 render();
             }}
 
@@ -324,6 +343,7 @@ with tab2:
 
             canvas.addEventListener('mousedown', (e) => {{
                 if (e.button === 0 || e.button === 2) {{
+                    saveState();
                     isDrawing = true;
                     paintCell(e);
                 }}
@@ -338,6 +358,7 @@ with tab2:
             }}
 
             function clearCanvas() {{
+                saveState();
                 offCtx.clearRect(0, 0, gridSize, gridSize);
                 render();
             }}
@@ -428,8 +449,8 @@ with tab2:
         </body>
         </html>
         """
-        # Altura del iframe holgada para garantizar la visibilidad de los 4 botones de descarga
-        components.html(pixel_editor_html, height=canvas_dim + 230)
+        # Altura incrementada a canvas_dim + 280px para evitar recorte
+        components.html(pixel_editor_html, height=canvas_dim + 280)
 
     else:
         st.caption("🎨 Dibuja libremente trazos suaves con el pincel:")
@@ -574,7 +595,7 @@ with tab3:
                     label="🖱️ .CUR",
                     data=item['cur_bytes'],
                     file_name=f"{item['title'].lower().replace(' ', '_')}.cur",
-                    mime="image/x-win-bitmap",
+                    mime="application/x-win-bitmap",
                     key=f"dl_cur_{idx}",
                     use_container_width=True
                 )
