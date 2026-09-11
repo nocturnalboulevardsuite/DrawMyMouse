@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=900&size=42&duration=600&pause=4000&color=8A0303&center=false&vCenter=true&width=135&height=60&lines=Draw" alt="Draw" />
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=900&size=42&duration=600&pause=4000&color=8A0303&center=false&vCenter=true&width=85&height=60&lines=My" alt="My" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=900&size=42&duration=600&pause=4000&color=1A237E&center=false&vCenter=true&width=85&height=60&lines=My" alt="My" />
   <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=900&size=42&duration=600&pause=4000&color=3B0764&center=false&vCenter=true&width=170&height=60&lines=Mouse" alt="Mouse" />
 </p>
 
