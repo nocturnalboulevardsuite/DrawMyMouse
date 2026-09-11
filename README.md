@@ -2,22 +2,21 @@
 
 ---
 
-<font color="#E53E3E">
+<h2 style="color: red;">Español</h2>
 
-## 🇪🇸 Español
+### ¿Qué Es?
+Es una app web la cual puedes dibujar tu propio mouse, importarlo y exportarlo. Puedes publicar tus propios mouses en la comunidad, y también puedes importar alguna foto y convertirla en mouse `.ico` o `.cur`.
 
-### ¿Qué es DrawMyMouse?
-DrawMyMouse es una aplicación web interactiva diseñada para la creación y conversión de cursores de ratón personalizados. Permite transformar imágenes existentes en archivos `.ico` y `.png` optimizados para el sistema o dibujar diseños píxel a píxel directamente en el navegador.
+---
 
-### Características principales
-* **Conversión de imágenes:** Procesa archivos PNG, JPG y WebP para generar formatos compatibles con el sistema operativo.
-* **Escalado Píxel-Perfect:** Utiliza interpolación por vecino más cercano (*nearest-neighbor*) para preservar la nitidez en resoluciones de 16px a 64px.
-* **Lienzo interactivo:** Editor estilo píxel art para dibujar cursores desde cero.
-* **Exportación CSS:** Genera automáticamente fragmentos de código Base64 para integración directa en desarrollo web.
+<h2 style="color: blue;">English</h2>
 
-### Instalación y uso
-```bash
-git clone [https://github.com/tu-usuario/DrawMyMouse.git](https://github.com/tu-usuario/DrawMyMouse.git)
-cd DrawMyMouse
-pip install -r requirements.txt
-streamlit run app.py
+### What Is It?
+It's a web app that lets you design your own mouse cursor, import and export it, and publish your own mouse cursors in the community. You can also import a photo and convert it into a `.ico` or `.cur` mouse cursor.
+
+---
+
+<h2 style="color: purple;">日本語 (Japan)</h2>
+
+### これは何ですか？
+これは、独自のマウスアイコンを描画したり、インポート・エクスポートしたりできるウェブアプリです。作成したマウスアイコンをコミュニティに公開したり、写真をインポートして `.ico` や `.cur` 形式のマウスアイコンに変換したりすることもできます。
