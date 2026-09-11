@@ -121,49 +121,56 @@ with tab2:
         key="pixel_art_canvas",
     )
 
-    if canvas_result.image_data is not None:
-        # Convertir datos del canvas a imagen PIL
-        drawn_data = canvas_result.image_data.astype(np.uint8)
-        img_drawn = Image.fromarray(drawn_data, "RGBA")
-        
-        # Reducir imagen manteniendo el estilo de píxel
-        pixel_cursor = img_drawn.resize((grid_size, grid_size), Image.Resampling.NEAREST)
-        
-        st.divider()
-        col_res1, col_res2 = st.columns(2)
-        
-        with col_res1:
-            st.write("**Resultado escala real:**")
-            st.image(pixel_cursor, caption=f"Cursor Final ({grid_size}x{grid_size}px)", width=128)
-            
-        with col_res2:
-            st.write("**Exportar diseño:**")
-            
-            buf_art_ico = io.BytesIO()
-            pixel_cursor.save(buf_art_ico, format="ICO")
-            
-            buf_art_png = io.BytesIO()
-            pixel_cursor.save(buf_art_png, format="PNG")
-            
-            st.download_button(
-                label="📥 Descargar (.ico)",
-                data=buf_art_ico.getvalue(),
-                file_name="drawmymouse_custom.ico",
-                mime="image/x-icon",
-                use_container_width=True
-            )
-            
-            st.download_button(
-                label="🖼️ Descargar PNG",
-                data=buf_art_png.getvalue(),
-                file_name="drawmymouse_custom.png",
-                mime="image/png",
-                use_container_width=True
-            )
-            
-            encoded_art = base64.b64encode(buf_art_png.getvalue()).decode()
-            with st.expander("🌐 Código CSS"):
-                st.code(
-                    f"body {{\n  cursor: url('data:image/png;base64,{encoded_art}'), auto;\n}}", 
-                    language="css"
-                )
+    # Evaluación segura para prevenir fallos al evaluar .image_data en blanco
+    if canvas_result is not None:
+        try:
+            canvas_data = canvas_result.image_data
+            if canvas_data is not None and np.any(canvas_data):
+                # Convertir datos del canvas a imagen PIL
+                drawn_data = canvas_data.astype(np.uint8)
+                img_drawn = Image.fromarray(drawn_data, "RGBA")
+                
+                # Reducir imagen manteniendo el estilo de píxel
+                pixel_cursor = img_drawn.resize((grid_size, grid_size), Image.Resampling.NEAREST)
+                
+                st.divider()
+                col_res1, col_res2 = st.columns(2)
+                
+                with col_res1:
+                    st.write("**Resultado escala real:**")
+                    st.image(pixel_cursor, caption=f"Cursor Final ({grid_size}x{grid_size}px)", width=128)
+                    
+                with col_res2:
+                    st.write("**Exportar diseño:**")
+                    
+                    buf_art_ico = io.BytesIO()
+                    pixel_cursor.save(buf_art_ico, format="ICO")
+                    
+                    buf_art_png = io.BytesIO()
+                    pixel_cursor.save(buf_art_png, format="PNG")
+                    
+                    st.download_button(
+                        label="📥 Descargar (.ico)",
+                        data=buf_art_ico.getvalue(),
+                        file_name="drawmymouse_custom.ico",
+                        mime="image/x-icon",
+                        use_container_width=True
+                    )
+                    
+                    st.download_button(
+                        label="🖼️ Descargar PNG",
+                        data=buf_art_png.getvalue(),
+                        file_name="drawmymouse_custom.png",
+                        mime="image/png",
+                        use_container_width=True
+                    )
+                    
+                    encoded_art = base64.b64encode(buf_art_png.getvalue()).decode()
+                    with st.expander("🌐 Código CSS"):
+                        st.code(
+                            f"body {{\n  cursor: url('data:image/png;base64,{encoded_art}'), auto;\n}}", 
+                            language="css"
+                        )
+        except Exception:
+            # Captura el error si la propiedad image_data aún no ha sido cargada por el canvas
+            pass
