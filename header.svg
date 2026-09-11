@@ -1,97 +1,160 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 130" width="100%" height="130">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 220" width="100%" height="220">
   <defs>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@900&amp;display=swap');
-      
-      text {
-        font-family: 'Fira Code', monospace, sans-serif;
-        font-size: 52px;
-        font-weight: 900;
+      @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@800&amp;display=swap');
+
+      .matrix-text {
+        font-family: 'JetBrains Mono', monospace, sans-serif;
+        font-weight: 800;
+        font-size: 54px;
+        letter-spacing: -1px;
       }
 
-      /* ROJO SANGRE (Draw) */
-      .draw {
-        fill: #8A0303;
-        animation: neonFlickerRed 3s infinite;
-      }
-      .drip-red {
-        fill: #8A0303;
-        animation: neonFlickerRed 3s infinite, dripDrop 2.2s infinite ease-in;
+      /* COLORES Y RESPLANDOR NEÓN */
+      .draw-text {
+        fill: #FF1E43;
+        filter: drop-shadow(0 0 8px rgba(255, 30, 67, 0.7)) drop-shadow(0 0 22px rgba(138, 3, 3, 0.9));
+        animation: cyberPulseRed 4s infinite alternate;
       }
 
-      /* AZUL NOCHE OSCURO (My) */
-      .my {
-        fill: #001A66;
-        animation: neonFlickerBlue 2.5s infinite;
-      }
-      .drip-blue {
-        fill: #001A66;
-        animation: neonFlickerBlue 2.5s infinite, dripDrop 2.7s infinite ease-in;
+      .my-text {
+        fill: #00D2FF;
+        filter: drop-shadow(0 0 8px rgba(0, 210, 255, 0.7)) drop-shadow(0 0 22px rgba(0, 30, 150, 0.9));
+        animation: cyberPulseBlue 3.5s infinite alternate;
       }
 
-      /* MORADO OSCURO (Mouse) */
-      .mouse {
-        fill: #3B0764;
-        animation: neonFlickerPurple 3.2s infinite;
-      }
-      .drip-purple {
-        fill: #3B0764;
-        animation: neonFlickerPurple 3.2s infinite, dripDrop 2.4s infinite ease-in;
+      .mouse-text {
+        fill: #B026FF;
+        filter: drop-shadow(0 0 8px rgba(176, 38, 255, 0.7)) drop-shadow(0 0 22px rgba(59, 7, 100, 0.9));
+        animation: cyberPulsePurple 4.5s infinite alternate;
       }
 
-      /* ANIMACIONES NEÓN PARPADEANTE */
-      @keyframes neonFlickerRed {
-        0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #FF0000) drop-shadow(0 0 16px #8A0303); }
-        15% { opacity: 0.15; filter: none; }
-        17% { opacity: 1; filter: drop-shadow(0 0 10px #FF0000); }
-        28% { opacity: 0.3; filter: none; }
-        30% { opacity: 1; filter: drop-shadow(0 0 12px #FF0000); }
-        75% { opacity: 0.2; filter: none; }
-        77% { opacity: 1; filter: drop-shadow(0 0 14px #FF0000); }
+      /* LLUVIA DIGITAL MATRIX */
+      .matrix-stream {
+        stroke-dasharray: 10 18;
+        animation: streamFall 3s linear infinite;
+        opacity: 0.35;
       }
 
-      @keyframes neonFlickerBlue {
-        0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #0055FF) drop-shadow(0 0 16px #001166); }
-        20% { opacity: 0.1; filter: none; }
-        22% { opacity: 1; filter: drop-shadow(0 0 12px #0055FF); }
-        60% { opacity: 0.25; filter: none; }
-        62% { opacity: 1; filter: drop-shadow(0 0 10px #0055FF); }
+      .matrix-stream-fast {
+        stroke-dasharray: 6 22;
+        animation: streamFall 1.8s linear infinite;
+        opacity: 0.25;
       }
 
-      @keyframes neonFlickerPurple {
-        0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #A855F7) drop-shadow(0 0 16px #3B0764); }
-        38% { opacity: 0.2; filter: none; }
-        40% { opacity: 1; filter: drop-shadow(0 0 12px #A855F7); }
-        52% { opacity: 0.35; filter: none; }
-        54% { opacity: 1; filter: drop-shadow(0 0 10px #A855F7); }
+      /* LOGO Y PÍXELES */
+      .neon-cursor {
+        fill: #080B10;
+        stroke: #00D2FF;
+        stroke-width: 2.5;
+        filter: drop-shadow(0 0 8px #00D2FF);
       }
 
-      /* ANIMACIÓN GOTEO */
-      @keyframes dripDrop {
-        0% { transform: translateY(0) scaleY(1); opacity: 1; }
-        65% { transform: translateY(15px) scaleY(1.4); opacity: 0.8; }
-        100% { transform: translateY(28px) scaleY(0.3); opacity: 0; }
+      .cursor-accent-red {
+        fill: #FF1E43;
+        filter: drop-shadow(0 0 6px #FF1E43);
+      }
+
+      .cursor-accent-purple {
+        fill: #B026FF;
+        filter: drop-shadow(0 0 6px #B026FF);
+      }
+
+      .grid-line {
+        stroke: rgba(255, 255, 255, 0.05);
+        stroke-width: 1;
+      }
+
+      /* ANIMACIONES */
+      @keyframes streamFall {
+        0% { stroke-dashoffset: 0; }
+        100% { stroke-dashoffset: -100; }
+      }
+
+      @keyframes cyberPulseRed {
+        0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(255, 30, 67, 0.7)) drop-shadow(0 0 22px rgba(138, 3, 3, 0.9)); }
+        49% { opacity: 1; }
+        50% { opacity: 0.3; filter: none; }
+        51% { opacity: 1; }
+        86% { opacity: 0.7; }
+        87% { opacity: 1; }
+      }
+
+      @keyframes cyberPulseBlue {
+        0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(0, 210, 255, 0.7)) drop-shadow(0 0 22px rgba(0, 30, 150, 0.9)); }
+        31% { opacity: 0.2; filter: none; }
+        32% { opacity: 1; }
+      }
+
+      @keyframes cyberPulsePurple {
+        0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(176, 38, 255, 0.7)) drop-shadow(0 0 22px rgba(59, 7, 100, 0.9)); }
+        71% { opacity: 0.25; filter: none; }
+        72% { opacity: 1; }
       }
     </style>
   </defs>
 
-  <g transform="translate(30, 65)">
-    <!-- TEXTO PRINCIPAL -->
-    <text x="0" y="0" class="draw">Draw</text>
-    <text x="160" y="0" class="my">My</text>
-    <text x="250" y="0" class="mouse">Mouse</text>
+  <!-- Fondo Cyber/Dark Canvas -->
+  <rect width="100%" height="100%" fill="#080B10" rx="12" />
+  
+  <!-- Rejilla estilo Matrix -->
+  <g class="grid-line">
+    <line x1="0" y1="40" x2="800" y2="40" />
+    <line x1="0" y1="80" x2="800" y2="80" />
+    <line x1="0" y1="120" x2="800" y2="120" />
+    <line x1="0" y1="160" x2="800" y2="160" />
+    <line x1="0" y1="200" x2="800" y2="200" />
+    
+    <line x1="100" y1="0" x2="100" y2="220" />
+    <line x1="200" y1="0" x2="200" y2="220" />
+    <line x1="300" y1="0" x2="300" y2="220" />
+    <line x1="400" y1="0" x2="400" y2="220" />
+    <line x1="500" y1="0" x2="500" y2="220" />
+    <line x1="600" y1="0" x2="600" y2="220" />
+    <line x1="700" y1="0" x2="700" y2="220" />
+  </g>
 
-    <!-- GOTAS GOTEO (DRAW) -->
-    <path d="M 35,5 C 33,18 28,24 33,28 C 38,32 41,30 38,18 Z" class="drip-red" />
-    <path d="M 105,5 C 103,15 100,20 103,24 C 106,27 108,26 106,16 Z" class="drip-red" style="animation-delay: 0.8s;" />
+  <!-- Lluvia de código Matrix (Fondo Animado) -->
+  <g stroke="#00D2FF" stroke-width="2" class="matrix-stream">
+    <line x1="60" y1="0" x2="60" y2="220" />
+    <line x1="240" y1="0" x2="240" y2="220" />
+    <line x1="520" y1="0" x2="520" y2="220" />
+    <line x1="740" y1="0" x2="740" y2="220" />
+  </g>
+  <g stroke="#FF1E43" stroke-width="1.5" class="matrix-stream-fast">
+    <line x1="140" y1="0" x2="140" y2="220" />
+    <line x1="380" y1="0" x2="380" y2="220" />
+    <line x1="660" y1="0" x2="660" y2="220" />
+  </g>
+  <g stroke="#B026FF" stroke-width="2" class="matrix-stream">
+    <line x1="180" y1="0" x2="180" y2="220" />
+    <line x1="460" y1="0" x2="460" y2="220" />
+    <line x1="580" y1="0" x2="580" y2="220" />
+  </g>
 
-    <!-- GOTAS GOTEO (MY) -->
-    <path d="M 182,5 C 180,16 177,22 180,26 C 183,29 186,28 184,18 Z" class="drip-blue" style="animation-delay: 0.4s;" />
-    <path d="M 220,5 C 218,18 214,25 217,30 C 221,33 223,31 221,20 Z" class="drip-blue" style="animation-delay: 1.2s;" />
+  <!-- Título Principal -->
+  <g transform="translate(140, 90)" class="matrix-text">
+    <text x="0" y="0" class="draw-text">Draw</text>
+    <text x="155" y="0" class="my-text">My</text>
+    <text x="245" y="0" class="mouse-text">Mouse</text>
+  </g>
 
-    <!-- GOTAS GOTEO (MOUSE) -->
-    <path d="M 290,5 C 288,15 284,21 287,25 C 290,28 293,27 291,17 Z" class="drip-purple" style="animation-delay: 0.3s;" />
-    <path d="M 355,5 C 353,19 348,26 352,31 C 356,34 359,33 356,21 Z" class="drip-purple" style="animation-delay: 0.9s;" />
-    <path d="M 420,5 C 418,14 415,19 418,23 C 421,26 423,25 421,15 Z" class="drip-purple" style="animation-delay: 1.6s;" />
+  <!-- Subtítulo Matrix Personalizado -->
+  <g transform="translate(400, 122)">
+    <text x="0" y="0" text-anchor="middle" fill="#8B949E" font-family="'JetBrains Mono', monospace" font-size="11" letter-spacing="2.5" opacity="0.9">
+      [ DMM BY NOCTURNALBOULEVARDSUITE • MAKE YOUR DREAMS REALITY ]
+    </text>
+  </g>
+
+  <!-- Logo de Puntero Ciberpunk + Cuadrícula de Píxeles -->
+  <g transform="translate(365, 148)">
+    <rect x="-36" y="-5" width="6" height="6" class="cursor-accent-red" />
+    <rect x="-24" y="-5" width="6" height="6" fill="#00D2FF" opacity="0.6" />
+    <rect x="-12" y="-5" width="6" height="6" class="cursor-accent-purple" />
+    <rect x="0" y="-5" width="6" height="6" fill="#00D2FF" opacity="0.9" />
+    <rect x="12" y="-5" width="6" height="6" class="cursor-accent-red" />
+
+    <path d="M 30,0 L 30,38 L 41,29 L 49,45 L 56,41 L 48,25 L 60,25 Z" class="neon-cursor" />
+    <path d="M 33,6 L 33,31 L 40,25 L 46,38 L 49,36 L 43,23 L 52,23 Z" fill="#00D2FF" opacity="0.8" />
   </g>
 </svg>
