@@ -31,12 +31,23 @@ def image_to_ani_bytes(img: Image.Image, hotspot=(0, 0)) -> bytes:
     list_content = b'fram' + icon_chunk
     list_chunk = b'LIST' + struct.pack('<I', len(list_content)) + list_content
     
-    # Header anih (36 bytes): cbSize(36), cFrames(1), cSteps(1), cx(0), cy(0), cBitCount(0), cPlanes(0), jifRate(10), flags(1)
     anih_data = struct.pack('<IIIIIIIII', 36, 1, 1, 0, 0, 0, 0, 10, 1)
     anih_chunk = b'anih' + struct.pack('<I', 36) + anih_data
     
     riff_content = b'ACON' + anih_chunk + list_chunk
     return b'RIFF' + struct.pack('<I', len(riff_content)) + riff_content
+
+# Generador de archivos .ICO
+def image_to_ico_bytes(img: Image.Image) -> bytes:
+    buf = io.BytesIO()
+    img.save(buf, format="ICO")
+    return buf.getvalue()
+
+# Generador de archivos .PNG
+def image_to_png_bytes(img: Image.Image) -> bytes:
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
 
 # Configuración de la página
 st.set_page_config(
@@ -70,17 +81,13 @@ if "community_cursors" not in st.session_state:
         (demo2, "Cyber Blade", "MatrixDev"),
         (demo3, "Gothic Cross", "PixelArtist")
     ]:
-        buf_cur = image_to_cur_bytes(demo_img)
-        buf_ani = image_to_ani_bytes(demo_img)
-        buf_ico = io.BytesIO()
-        demo_img.save(buf_ico, format="ICO")
-        
         st.session_state.community_cursors.append({
             "title": title,
             "author": author,
-            "cur_bytes": buf_cur,
-            "ani_bytes": buf_ani,
-            "ico_bytes": buf_ico.getvalue(),
+            "ani_bytes": image_to_ani_bytes(demo_img),
+            "cur_bytes": image_to_cur_bytes(demo_img),
+            "ico_bytes": image_to_ico_bytes(demo_img),
+            "png_bytes": image_to_png_bytes(demo_img),
             "preview_img": demo_img
         })
 
@@ -97,7 +104,7 @@ tab1, tab2, tab3 = st.tabs(["🖼️ Convertir Imagen", "🎨 Editor de Diseño"
 # =========================================================
 with tab1:
     st.subheader("Convertir imagen a cursor")
-    st.write("Sube cualquier imagen para transformarla en un puntero `.cur`, `.ani` o `.ico`.")
+    st.write("Sube cualquier imagen para transformarla en puntero de mouse o icono de carpeta.")
     
     uploaded_file = st.file_uploader(
         "Carga tu imagen (PNG con transparencia recomendado):",
@@ -128,41 +135,44 @@ with tab1:
         st.divider()
         st.markdown("**📥 Descargas y Exportación**")
         
-        cur_bytes = image_to_cur_bytes(cursor_img)
         ani_bytes = image_to_ani_bytes(cursor_img)
+        cur_bytes = image_to_cur_bytes(cursor_img)
+        ico_bytes = image_to_ico_bytes(cursor_img)
+        png_bytes = image_to_png_bytes(cursor_img)
         
-        buf_ico = io.BytesIO()
-        cursor_img.save(buf_ico, format="ICO")
-        
-        col_d1, col_d2, col_d3 = st.columns(3)
+        col_d1, col_d2 = st.columns(2)
         with col_d1:
             st.download_button(
-                label="⭐ Descargar (.cur) [Recomendado]",
-                data=cur_bytes,
-                file_name="drawmymouse_cursor.cur",
-                mime="image/x-win-bitmap",
+                label="✨ Descargar (.ani) [Recomendado]",
+                data=ani_bytes,
+                file_name="cursor.ani",
+                mime="application/x-navi-animation",
+                use_container_width=True
+            )
+            st.download_button(
+                label="📁 Descargar (.ico) [Personalizar carpetas]",
+                data=ico_bytes,
+                file_name="cursor.ico",
+                mime="image/x-icon",
                 use_container_width=True
             )
         with col_d2:
             st.download_button(
-                label="✨ Descargar (.ani)",
-                data=ani_bytes,
-                file_name="drawmymouse_cursor.ani",
-                mime="application/x-navi-animation",
+                label="🖱️ Descargar (.cur)",
+                data=cur_bytes,
+                file_name="cursor.cur",
+                mime="image/x-win-bitmap",
                 use_container_width=True
             )
-        with col_d3:
             st.download_button(
-                label="📥 Descargar (.ico)",
-                data=buf_ico.getvalue(),
-                file_name="drawmymouse_cursor.ico",
-                mime="image/x-icon",
+                label="🖼️ Descargar (.png) [Previsualizar]",
+                data=png_bytes,
+                file_name="cursor.png",
+                mime="image/png",
                 use_container_width=True
             )
         
-        buf_png = io.BytesIO()
-        cursor_img.save(buf_png, format="PNG")
-        encoded_png = base64.b64encode(buf_png.getvalue()).decode()
+        encoded_png = base64.b64encode(png_bytes).decode()
         with st.expander("🌐 Código CSS para tu Web"):
             st.code(
                 f"body {{\n  cursor: url('data:image/png;base64,{encoded_png}'), auto;\n}}", 
@@ -171,7 +181,7 @@ with tab1:
 
 
 # =========================================================
-# PESTAÑA 2: EDITOR DE DISEÑO (CENTRADO Y ESCALABLE)
+# PESTAÑA 2: EDITOR DE DISEÑO
 # =========================================================
 with tab2:
     st.subheader("Editor de Diseño")
@@ -184,7 +194,7 @@ with tab2:
             horizontal=True
         )
     with col_zoom:
-        canvas_dim = st.slider("🔍 Zoom del Lienzo (px):", min_value=320, max_value=560, value=400, step=40)
+        canvas_dim = st.slider("🔍 Zoom del Lienzo (px):", min_value=320, max_value=520, value=400, step=40)
 
     st.divider()
 
@@ -196,20 +206,21 @@ with tab2:
         <html>
         <head>
         <style>
-            body {{ font-family: system-ui, sans-serif; color: #ffffff; background: transparent; margin: 0; padding: 0; }}
-            .editor-container {{ display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 12px; }}
+            body {{ font-family: system-ui, sans-serif; color: #ffffff; background: transparent; margin: 0; padding: 0; overflow: hidden; }}
+            .editor-container {{ display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; gap: 14px; padding-bottom: 20px; }}
             .toolbar {{ display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; background: #1e222a; padding: 10px 16px; border-radius: 8px; width: 100%; max-width: {canvas_dim}px; box-sizing: border-box; }}
             .toolbar label {{ font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; }}
             .toolbar input[type="color"] {{ border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; background: none; }}
             .toolbar select, .toolbar button {{ background: #2b303c; color: white; border: 1px solid #3d4454; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s; }}
             .toolbar button.active {{ background: #ff4b4b; border-color: #ff4b4b; font-weight: bold; }}
             .toolbar button:hover {{ background: #3d4454; }}
-            .canvas-box {{ position: relative; width: {canvas_dim}px; height: {canvas_dim}px; border: 2px solid #3d4454; border-radius: 8px; overflow: hidden; background: #ffffff; cursor: crosshair; }}
+            .canvas-box {{ position: relative; width: {canvas_dim}px; height: {canvas_dim}px; border: 2px solid #3d4454; border-radius: 8px; overflow: hidden; background: #ffffff; cursor: crosshair; box-sizing: border-box; }}
             canvas {{ display: block; image-rendering: pixelated; image-rendering: crisp-edges; }}
-            .action-btns {{ display: flex; gap: 8px; width: 100%; max-width: {canvas_dim}px; }}
-            .btn-dl {{ flex: 1; background: #2b303c; color: white; border: 1px solid #3d4454; padding: 10px 4px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; text-align: center; text-decoration: none; transition: 0.2s; }}
-            .btn-dl:hover {{ background: #3d4454; }}
-            .btn-rec {{ background: #ff4b4b; border-color: #ff4b4b; font-weight: bold; }}
+            
+            .action-btns {{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: {canvas_dim}px; box-sizing: border-box; }}
+            .btn-dl {{ display: flex; align-items: center; justify-content: center; background: #2b303c; color: white; border: 1px solid #3d4454; padding: 10px 8px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; text-align: center; text-decoration: none; transition: 0.2s; }}
+            .btn-dl:hover {{ background: #3d4454; border-color: #ff4b4b; }}
+            .btn-rec {{ background: #ff4b4b; border-color: #ff4b4b; font-weight: bold; color: #ffffff; }}
             .btn-rec:hover {{ background: #e03e3e; }}
         </style>
         </head>
@@ -233,9 +244,10 @@ with tab2:
             </div>
 
             <div class="action-btns">
-                <a id="downloadCur" class="btn-dl btn-rec" download="cursor_8bit.cur">⭐ .CUR (Recomendado)</a>
-                <a id="downloadAni" class="btn-dl" download="cursor_8bit.ani">✨ .ANI</a>
-                <a id="downloadIco" class="btn-dl" download="cursor_8bit.ico">📥 .ICO</a>
+                <a id="downloadAni" class="btn-dl btn-rec" download="cursor_8bit.ani">✨ .ANI (Recomendado)</a>
+                <a id="downloadCur" class="btn-dl" download="cursor_8bit.cur">🖱️ .CUR</a>
+                <a id="downloadIco" class="btn-dl" download="cursor_8bit.ico">📁 .ICO (Carpetas)</a>
+                <a id="downloadPng" class="btn-dl" download="cursor_8bit.png">🖼️ .PNG (Vista Previa)</a>
             </div>
         </div>
 
@@ -335,11 +347,80 @@ with tab2:
                 initGrid();
             }}
 
-            function updateDownloadLinks() {{
-                const dataUrl = offCanvas.toDataURL('image/png');
-                document.getElementById('downloadCur').href = dataUrl;
-                document.getElementById('downloadAni').href = dataUrl;
-                document.getElementById('downloadIco').href = dataUrl;
+            async function updateDownloadLinks() {{
+                offCanvas.toBlob(async (blob) => {{
+                    if (!blob) return;
+                    const pngArrayBuffer = await blob.arrayBuffer();
+                    const pngBytes = new Uint8Array(pngArrayBuffer);
+                    const pngSize = pngBytes.length;
+
+                    // 1. PNG Blob
+                    const pngBlob = new Blob([pngBytes], {{ type: 'image/png' }});
+                    document.getElementById('downloadPng').href = URL.createObjectURL(pngBlob);
+
+                    // 2. CUR Binary
+                    const curHeader = new Uint8Array([
+                        0,0, 2,0, 1,0,
+                        gridSize >= 256 ? 0 : gridSize, gridSize >= 256 ? 0 : gridSize, 0, 0,
+                        0,0, 0,0,
+                        pngSize & 0xFF, (pngSize >> 8) & 0xFF, (pngSize >> 16) & 0xFF, (pngSize >> 24) & 0xFF,
+                        22, 0, 0, 0
+                    ]);
+                    const curBuffer = new Uint8Array(22 + pngSize);
+                    curBuffer.set(curHeader, 0);
+                    curBuffer.set(pngBytes, 22);
+
+                    const curBlob = new Blob([curBuffer], {{ type: 'image/x-win-bitmap' }});
+                    document.getElementById('downloadCur').href = URL.createObjectURL(curBlob);
+
+                    // 3. ANI RIFF Binary
+                    let pad = (curBuffer.length % 2 !== 0) ? 1 : 0;
+                    let iconChunkLen = curBuffer.length + pad;
+                    let listContentLen = 4 + 8 + iconChunkLen;
+                    let listChunkLen = 8 + listContentLen;
+                    let anihLen = 36;
+                    let riffContentLen = 4 + 8 + anihLen + listChunkLen;
+
+                    const aniBuffer = new Uint8Array(8 + riffContentLen);
+                    let view = new DataView(aniBuffer.buffer);
+                    let pos = 0;
+
+                    aniBuffer.set([82, 73, 70, 70], pos); pos += 4;
+                    view.setUint32(pos, riffContentLen, true); pos += 4;
+                    aniBuffer.set([65, 67, 79, 78], pos); pos += 4;
+                    aniBuffer.set([97, 110, 105, 104], pos); pos += 4;
+                    view.setUint32(pos, 36, true); pos += 4;
+                    
+                    view.setUint32(pos, 36, true); view.setUint32(pos+4, 1, true); view.setUint32(pos+8, 1, true);
+                    view.setUint32(pos+12, 0, true); view.setUint32(pos+16, 0, true); view.setUint32(pos+20, 0, true);
+                    view.setUint32(pos+24, 0, true); view.setUint32(pos+28, 10, true); view.setUint32(pos+32, 1, true);
+                    pos += 36;
+
+                    aniBuffer.set([76, 73, 83, 84], pos); pos += 4;
+                    view.setUint32(pos, listContentLen, true); pos += 4;
+                    aniBuffer.set([102, 114, 97, 109], pos); pos += 4;
+                    aniBuffer.set([105, 99, 111, 110], pos); pos += 4;
+                    view.setUint32(pos, curBuffer.length, true); pos += 4;
+                    aniBuffer.set(curBuffer, pos);
+
+                    const aniBlob = new Blob([aniBuffer], {{ type: 'application/x-navi-animation' }});
+                    document.getElementById('downloadAni').href = URL.createObjectURL(aniBlob);
+
+                    // 4. ICO Binary
+                    const icoHeader = new Uint8Array([
+                        0,0, 1,0, 1,0,
+                        gridSize >= 256 ? 0 : gridSize, gridSize >= 256 ? 0 : gridSize, 0, 0,
+                        1,0, 32,0,
+                        pngSize & 0xFF, (pngSize >> 8) & 0xFF, (pngSize >> 16) & 0xFF, (pngSize >> 24) & 0xFF,
+                        22, 0, 0, 0
+                    ]);
+                    const icoBuffer = new Uint8Array(22 + pngSize);
+                    icoBuffer.set(icoHeader, 0);
+                    icoBuffer.set(pngBytes, 22);
+
+                    const icoBlob = new Blob([icoBuffer], {{ type: 'image/x-icon' }});
+                    document.getElementById('downloadIco').href = URL.createObjectURL(icoBlob);
+                }}, 'image/png');
             }}
 
             initGrid();
@@ -347,7 +428,8 @@ with tab2:
         </body>
         </html>
         """
-        components.html(pixel_editor_html, height=canvas_dim + 160)
+        # Altura del iframe holgada para garantizar la visibilidad de los 4 botones de descarga
+        components.html(pixel_editor_html, height=canvas_dim + 230)
 
     else:
         st.caption("🎨 Dibuja libremente trazos suaves con el pincel:")
@@ -397,35 +479,40 @@ with tab2:
                     
                     with col_p2:
                         st.write("**Exportar diseño:**")
-                        buf_p_cur = image_to_cur_bytes(cursor_paint)
                         buf_p_ani = image_to_ani_bytes(cursor_paint)
+                        buf_p_cur = image_to_cur_bytes(cursor_paint)
+                        buf_p_ico = image_to_ico_bytes(cursor_paint)
+                        buf_p_png = image_to_png_bytes(cursor_paint)
                         
-                        buf_p_ico = io.BytesIO()
-                        cursor_paint.save(buf_p_ico, format="ICO")
-                        
-                        col_p_d1, col_p_d2, col_p_d3 = st.columns(3)
+                        col_p_d1, col_p_d2 = st.columns(2)
                         with col_p_d1:
                             st.download_button(
-                                label="⭐ (.cur) [Rec]",
-                                data=buf_p_cur,
-                                file_name="cursor_paint.cur",
-                                mime="image/x-win-bitmap",
-                                use_container_width=True
-                            )
-                        with col_p_d2:
-                            st.download_button(
-                                label="✨ (.ani)",
+                                label="✨ (.ani) [Recomendado]",
                                 data=buf_p_ani,
                                 file_name="cursor_paint.ani",
                                 mime="application/x-navi-animation",
                                 use_container_width=True
                             )
-                        with col_p_d3:
                             st.download_button(
-                                label="📥 (.ico)",
-                                data=buf_p_ico.getvalue(),
+                                label="📁 (.ico) [Carpetas]",
+                                data=buf_p_ico,
                                 file_name="cursor_paint.ico",
                                 mime="image/x-icon",
+                                use_container_width=True
+                            )
+                        with col_p_d2:
+                            st.download_button(
+                                label="🖱️ (.cur)",
+                                data=buf_p_cur,
+                                file_name="cursor_paint.cur",
+                                mime="image/x-win-bitmap",
+                                use_container_width=True
+                            )
+                            st.download_button(
+                                label="🖼️ (.png) [Vista Previa]",
+                                data=buf_p_png,
+                                file_name="cursor_paint.png",
+                                mime="image/png",
                                 use_container_width=True
                             )
             except Exception:
@@ -433,15 +520,15 @@ with tab2:
 
 
 # =========================================================
-# PESTAÑA 3: CURSORES DE LA COMUNIDAD (FREE DOWNLOADS)
+# PESTAÑA 3: CURSORES DE LA COMUNIDAD
 # =========================================================
 with tab3:
     st.subheader("🌐 Cursores Creados por la Comunidad")
     st.write("Explora, descarga gratis o publica tus propios diseños hechos en DrawMyMouse.")
     
-    with st.expander("📤 Subir un archivo de Mouse (.cur / .ani / .ico / .png) a la comunidad"):
+    with st.expander("📤 Subir un archivo de Mouse (.ani / .cur / .ico / .png) a la comunidad"):
         with st.form("upload_community_form"):
-            comm_file = st.file_uploader("Elige tu imagen de cursor:", type=["cur", "ani", "ico", "png"])
+            comm_file = st.file_uploader("Elige tu imagen de cursor:", type=["ani", "cur", "ico", "png"])
             comm_title = st.text_input("Título del Cursor:", "Neon Pointer")
             comm_author = st.text_input("Autor:", "DiseñadorWeb")
             submit_upload = st.form_submit_button("Subir a la Comunidad")
@@ -449,17 +536,13 @@ with tab3:
             if submit_upload and comm_file:
                 upload_img = Image.open(comm_file).convert("RGBA").resize((32, 32), Image.Resampling.NEAREST)
                 
-                b_cur = image_to_cur_bytes(upload_img)
-                b_ani = image_to_ani_bytes(upload_img)
-                b_ico = io.BytesIO()
-                upload_img.save(b_ico, format="ICO")
-                
                 st.session_state.community_cursors.append({
                     "title": comm_title,
                     "author": comm_author,
-                    "cur_bytes": b_cur,
-                    "ani_bytes": b_ani,
-                    "ico_bytes": b_ico.getvalue(),
+                    "ani_bytes": image_to_ani_bytes(upload_img),
+                    "cur_bytes": image_to_cur_bytes(upload_img),
+                    "ico_bytes": image_to_ico_bytes(upload_img),
+                    "png_bytes": image_to_png_bytes(upload_img),
                     "preview_img": upload_img
                 })
                 st.success("¡Cursor subido a la comunidad con éxito!")
@@ -480,15 +563,7 @@ with tab3:
                 st.image(preview_large_comm)
                 
                 st.download_button(
-                    label="⭐ .CUR (Recomendado)",
-                    data=item['cur_bytes'],
-                    file_name=f"{item['title'].lower().replace(' ', '_')}.cur",
-                    mime="image/x-win-bitmap",
-                    key=f"dl_cur_{idx}",
-                    use_container_width=True
-                )
-                st.download_button(
-                    label="✨ .ANI",
+                    label="✨ .ANI (Recomendado)",
                     data=item['ani_bytes'],
                     file_name=f"{item['title'].lower().replace(' ', '_')}.ani",
                     mime="application/x-navi-animation",
@@ -496,11 +571,27 @@ with tab3:
                     use_container_width=True
                 )
                 st.download_button(
-                    label="📥 .ICO",
+                    label="🖱️ .CUR",
+                    data=item['cur_bytes'],
+                    file_name=f"{item['title'].lower().replace(' ', '_')}.cur",
+                    mime="image/x-win-bitmap",
+                    key=f"dl_cur_{idx}",
+                    use_container_width=True
+                )
+                st.download_button(
+                    label="📁 .ICO (Carpetas)",
                     data=item['ico_bytes'],
                     file_name=f"{item['title'].lower().replace(' ', '_')}.ico",
                     mime="image/x-icon",
                     key=f"dl_ico_{idx}",
+                    use_container_width=True
+                )
+                st.download_button(
+                    label="🖼️ .PNG (Previsualización)",
+                    data=item['png_bytes'],
+                    file_name=f"{item['title'].lower().replace(' ', '_')}.png",
+                    mime="image/png",
+                    key=f"dl_png_{idx}",
                     use_container_width=True
                 )
                 st.markdown("---")
