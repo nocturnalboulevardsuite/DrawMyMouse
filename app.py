@@ -7,6 +7,23 @@ from PIL import Image, ImageDraw
 import streamlit.components.v1 as components
 from streamlit_drawable_canvas import st_canvas
 
+# Función auxiliar para leer imágenes y extraer PNGs incrustados en .ani / .cur / .ico
+def load_image_from_upload(file_obj) -> Image.Image:
+    file_bytes = file_obj.read()
+    file_obj.seek(0)
+    
+    # Busca la firma mágica del formato PNG dentro del archivo binario (.ani/.cur)
+    png_sig = b'\x89PNG\r\n\x1a\n'
+    idx = file_bytes.find(png_sig)
+    if idx != -1:
+        try:
+            return Image.open(io.BytesIO(file_bytes[idx:])).convert("RGBA")
+        except Exception:
+            pass
+            
+    # Intentar apertura directa con PIL (para PNG, JPG, WEBP standard)
+    return Image.open(io.BytesIO(file_bytes)).convert("RGBA")
+
 # Generador de archivos .CUR reales con cabecera de Windows
 def image_to_cur_bytes(img: Image.Image, hotspot=(0, 0)) -> bytes:
     buf = io.BytesIO()
@@ -113,71 +130,74 @@ with tab1:
     )
     
     if uploaded_file:
-        image = Image.open(uploaded_file).convert("RGBA")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.image(image, caption="Imagen Original", use_container_width=True)
-        
-        with col2:
-            size = st.selectbox("Tamaño del cursor (px):", [16, 32, 48, 64], index=1)
-            resampling_method = st.radio(
-                "Estilo de escalado:",
-                ["Píxel / Retro (Nearest Neighbor)", "Suave (Bilinear)"],
-                index=0
-            )
+        try:
+            image = load_image_from_upload(uploaded_file)
             
-            resample_flag = Image.Resampling.NEAREST if "Retro" in resampling_method else Image.Resampling.BILINEAR
-            cursor_img = image.resize((size, size), resample=resample_flag)
+            col1, col2 = st.columns(2)
+            with col1:
+                st.image(image, caption="Imagen Original", use_container_width=True)
             
-            st.image(cursor_img, caption=f"Vista previa ({size}x{size}px)", width=128)
+            with col2:
+                size = st.selectbox("Tamaño del cursor (px):", [16, 32, 48, 64], index=1)
+                resampling_method = st.radio(
+                    "Estilo de escalado:",
+                    ["Píxel / Retro (Nearest Neighbor)", "Suave (Bilinear)"],
+                    index=0
+                )
+                
+                resample_flag = Image.Resampling.NEAREST if "Retro" in resampling_method else Image.Resampling.BILINEAR
+                cursor_img = image.resize((size, size), resample=resample_flag)
+                
+                st.image(cursor_img, caption=f"Vista previa ({size}x{size}px)", width=128)
 
-        st.divider()
-        st.markdown("**📥 Descargas y Exportación**")
-        
-        ani_bytes = image_to_ani_bytes(cursor_img)
-        cur_bytes = image_to_cur_bytes(cursor_img)
-        ico_bytes = image_to_ico_bytes(cursor_img)
-        png_bytes = image_to_png_bytes(cursor_img)
-        
-        col_d1, col_d2 = st.columns(2)
-        with col_d1:
-            st.download_button(
-                label="✨ Descargar (.ani) [Recomendado]",
-                data=ani_bytes,
-                file_name="cursor.ani",
-                mime="application/x-navi-animation",
-                use_container_width=True
-            )
-            st.download_button(
-                label="📁 Descargar (.ico) [Personalizar carpetas]",
-                data=ico_bytes,
-                file_name="cursor.ico",
-                mime="image/x-icon",
-                use_container_width=True
-            )
-        with col_d2:
-            st.download_button(
-                label="🖱️ Descargar (.cur)",
-                data=cur_bytes,
-                file_name="cursor.cur",
-                mime="image/x-win-bitmap",
-                use_container_width=True
-            )
-            st.download_button(
-                label="🖼️ Descargar (.png) [Previsualizar]",
-                data=png_bytes,
-                file_name="cursor.png",
-                mime="image/png",
-                use_container_width=True
-            )
-        
-        encoded_png = base64.b64encode(png_bytes).decode()
-        with st.expander("🌐 Código CSS para tu Web"):
-            st.code(
-                f"body {{\n  cursor: url('data:image/png;base64,{encoded_png}'), auto;\n}}", 
-                language="css"
-            )
+            st.divider()
+            st.markdown("**📥 Descargas y Exportación**")
+            
+            ani_bytes = image_to_ani_bytes(cursor_img)
+            cur_bytes = image_to_cur_bytes(cursor_img)
+            ico_bytes = image_to_ico_bytes(cursor_img)
+            png_bytes = image_to_png_bytes(cursor_img)
+            
+            col_d1, col_d2 = st.columns(2)
+            with col_d1:
+                st.download_button(
+                    label="✨ Descargar (.ani) [Recomendado]",
+                    data=ani_bytes,
+                    file_name="cursor.ani",
+                    mime="application/x-navi-animation",
+                    use_container_width=True
+                )
+                st.download_button(
+                    label="📁 Descargar (.ico) [Personalizar carpetas]",
+                    data=ico_bytes,
+                    file_name="cursor.ico",
+                    mime="image/x-icon",
+                    use_container_width=True
+                )
+            with col_d2:
+                st.download_button(
+                    label="🖱️ Descargar (.cur)",
+                    data=cur_bytes,
+                    file_name="cursor.cur",
+                    mime="image/x-win-bitmap",
+                    use_container_width=True
+                )
+                st.download_button(
+                    label="🖼️ Descargar (.png) [Previsualizar]",
+                    data=png_bytes,
+                    file_name="cursor.png",
+                    mime="image/png",
+                    use_container_width=True
+                )
+            
+            encoded_png = base64.b64encode(png_bytes).decode()
+            with st.expander("🌐 Código CSS para tu Web"):
+                st.code(
+                    f"body {{\n  cursor: url('data:image/png;base64,{encoded_png}'), auto;\n}}", 
+                    language="css"
+                )
+        except Exception:
+            st.error("No se pudo procesar la imagen subida. Intenta con otra imagen.")
 
 
 # =========================================================
@@ -449,7 +469,6 @@ with tab2:
         </body>
         </html>
         """
-        # Altura incrementada a canvas_dim + 280px para evitar recorte
         components.html(pixel_editor_html, height=canvas_dim + 280)
 
     else:
@@ -555,18 +574,21 @@ with tab3:
             submit_upload = st.form_submit_button("Subir a la Comunidad")
             
             if submit_upload and comm_file:
-                upload_img = Image.open(comm_file).convert("RGBA").resize((32, 32), Image.Resampling.NEAREST)
-                
-                st.session_state.community_cursors.append({
-                    "title": comm_title,
-                    "author": comm_author,
-                    "ani_bytes": image_to_ani_bytes(upload_img),
-                    "cur_bytes": image_to_cur_bytes(upload_img),
-                    "ico_bytes": image_to_ico_bytes(upload_img),
-                    "png_bytes": image_to_png_bytes(upload_img),
-                    "preview_img": upload_img
-                })
-                st.success("¡Cursor subido a la comunidad con éxito!")
+                try:
+                    upload_img = load_image_from_upload(comm_file).resize((32, 32), Image.Resampling.NEAREST)
+                    
+                    st.session_state.community_cursors.append({
+                        "title": comm_title,
+                        "author": comm_author,
+                        "ani_bytes": image_to_ani_bytes(upload_img),
+                        "cur_bytes": image_to_cur_bytes(upload_img),
+                        "ico_bytes": image_to_ico_bytes(upload_img),
+                        "png_bytes": image_to_png_bytes(upload_img),
+                        "preview_img": upload_img
+                    })
+                    st.success("¡Cursor subido a la comunidad con éxito!")
+                except Exception:
+                    st.error("No se pudo procesar el archivo. Asegúrate de subir una imagen o cursor válido.")
 
     st.divider()
     
