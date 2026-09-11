@@ -12,11 +12,28 @@ st.set_page_config(
     layout="centered"
 )
 
+# Función para generar la cuadrícula de 8-bits nativa en PIL (Garantiza ver los cuadritos dentro del iframe)
+def generate_grid_background(grid_size, canvas_dim=320):
+    grid_img = Image.new("RGBA", (canvas_dim, canvas_dim), (255, 255, 255, 255))
+    draw = ImageDraw.Draw(grid_img)
+    cell_size = canvas_dim / grid_size
+    
+    # Dibujar líneas verticales de la cuadrícula
+    for x in range(grid_size + 1):
+        pos = int(x * cell_size)
+        draw.line([(pos, 0), (pos, canvas_dim)], fill=(210, 210, 210, 255), width=1)
+        
+    # Dibujar líneas horizontales de la cuadrícula
+    for y in range(grid_size + 1):
+        pos = int(y * cell_size)
+        draw.line([(0, pos), (canvas_dim, pos)], fill=(210, 210, 210, 255), width=1)
+        
+    return grid_img
+
 # Inicializar almacenamiento de la comunidad en la sesión
 if "community_cursors" not in st.session_state:
     st.session_state.community_cursors = []
     
-    # Crear cursores de ejemplo estilo 8-bit
     def create_sample_cursor(color, shape_type):
         img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
@@ -135,7 +152,7 @@ with tab2:
     
     draw_mode_type = st.radio(
         "Modo de creación:",
-        ["👾 Modo Píxeles (Retícula 8-Bit)", "🎨 Modo Paint (Trazo Libre)"],
+        ["👾 Modo Píxeles (Cuadrícula 8-Bit)", "🎨 Modo Paint (Trazo Libre)"],
         horizontal=True
     )
 
@@ -146,48 +163,31 @@ with tab2:
     
     with col_ctrl2:
         if "8-Bit" in draw_mode_type:
-            grid_size = st.selectbox("Grid Píxeles:", [16, 24, 32], index=0, help="16x16 es el estándar clásico de 8 bits.")
-            # Cálculo exacto del tamaño del píxel en un lienzo de 320px
+            grid_size = st.selectbox("Grid (Píxeles por lado):", [16, 24, 32], index=0, help="16x16 es el estándar clásico de 8 bits.")
             cell_px = 320 // grid_size
-            brush_blocks = st.slider("Tamaño de bloque (Píxeles):", min_value=1, max_value=3, value=1)
+            brush_blocks = st.slider("Bloques por pincelada:", min_value=1, max_value=3, value=1)
             brush_size = cell_px * brush_blocks
+            bg_image = generate_grid_background(grid_size)
         else:
             grid_size = st.selectbox("Resolución final:", [16, 32, 48], index=1)
             brush_size = st.slider("Grosor del pincel libre:", min_value=4, max_value=28, value=12, step=2)
+            bg_image = None
 
     stroke_color = draw_color if tool == "Pincel" else "rgba(0,0,0,0)"
 
-    # Inyección de cuadrícula visual CSS estilo 8-Bit Painter
-    if "8-Bit" in draw_mode_type:
-        cell_size_css = 320 / grid_size
-        st.markdown(
-            f"""
-            <style>
-            div[data-testid="stCanvas"] {{
-                border: 2px solid #555;
-            }}
-            div[data-testid="stCanvas"] canvas {{
-                background-image: 
-                    linear-gradient(to right, rgba(0, 0, 0, 0.2) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 1px, transparent 1px) !important;
-                background-size: {cell_size_css}px {cell_size_css}px !important;
-                background-color: #ffffff !important;
-            }}
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-
     st.caption("🎨 Dibuja dentro del recuadro:")
+    
+    # El fondo de la cuadrícula se inyecta como background_image
     canvas_result = st_canvas(
         fill_color="rgba(0, 0, 0, 0)",
         stroke_width=brush_size,
         stroke_color=stroke_color,
-        background_color="#ffffff" if "8-Bit" in draw_mode_type else "#F0F2F6",
+        background_color="#F0F2F6" if bg_image is None else None,
+        background_image=bg_image,
         height=320,
         width=320,
         drawing_mode="freedraw",
-        key=f"pixel_art_canvas_{draw_mode_type}_{grid_size}",
+        key=f"canvas_mode_{draw_mode_type}_{grid_size}",
     )
 
     if canvas_result is not None:
@@ -198,25 +198,30 @@ with tab2:
                 img_drawn = Image.fromarray(drawn_data, "RGBA")
                 
                 if "8-Bit" in draw_mode_type:
-                    # Reducción sin suavizado (NEAREST)
+                    # 1. Reducir al tamaño exacto de la cuadrícula usando NEAREST
                     img_small = img_drawn.resize((grid_size, grid_size), Image.Resampling.NEAREST)
                     
-                    # Cuantización de transparencia (elimina bordes borrosos)
-                    np_small = np.array(img_small)
-                    alpha = np_small[:, :, 3]
-                    np_small[:, :, 3] = np.where(alpha > 30, 255, 0)
-                    pixel_cursor = Image.fromarray(np_small, "RGBA")
+                    # 2. Convertir cualquier trazo en píxeles sólidos puros de 8 bits (sin bordes borrosos)
+                    arr = np.array(img_small)
+                    alpha = arr[:, :, 3]
+                    arr[:, :, 3] = np.where(alpha > 15, 255, 0)
+                    pixel_cursor = Image.fromarray(arr, "RGBA")
+                    
+                    # Generar vista previa en bloques cuadrados ampliados
+                    preview_grid = pixel_cursor.resize((320, 320), Image.Resampling.NEAREST)
                 else:
                     pixel_cursor = img_drawn.resize((grid_size, grid_size), Image.Resampling.BILINEAR)
+                    preview_grid = pixel_cursor.resize((128, 128), Image.Resampling.NEAREST)
                 
                 st.divider()
                 col_res1, col_res2 = st.columns(2)
                 
                 with col_res1:
-                    st.write("**Vista previa final (8-Bit Pixel Art):**")
-                    # Mostrar la vista previa agrandada pero pixelada
-                    preview_large = pixel_cursor.resize((128, 128), Image.Resampling.NEAREST)
-                    st.image(preview_large, caption=f"Cursor Resultado ({grid_size}x{grid_size}px)")
+                    st.write("**Resultado Píxel Art (8-Bit):**")
+                    if "8-Bit" in draw_mode_type:
+                        st.image(preview_grid, caption=f"Matriz de {grid_size}x{grid_size} píxeles", width=200)
+                    else:
+                        st.image(pixel_cursor, caption=f"Cursor {grid_size}x{grid_size}px", width=128)
                     
                 with col_res2:
                     st.write("**Exportar diseño:**")
@@ -246,7 +251,7 @@ with tab2:
                 # Publicación a la comunidad
                 with st.expander("🚀 ¿Quieres publicar este diseño en la Comunidad?"):
                     with st.form("publish_form"):
-                        pub_title = st.text_input("Nombre de tu Mouse:", "Pixel Mouse 8-Bit")
+                        pub_title = st.text_input("Nombre de tu Mouse:", "Pixel Cursor 8-Bit")
                         pub_author = st.text_input("Tu Nombre/Alias:", "PixelArtist")
                         submit_pub = st.form_submit_button("🌟 Publicar Gratis para Todos")
                         
