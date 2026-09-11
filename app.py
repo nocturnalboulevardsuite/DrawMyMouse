@@ -310,41 +310,45 @@ with tab2:
             key="canvas_freedraw_mode",
         )
 
-        if canvas_result is not None and canvas_result.image_data is not None:
-            canvas_data = canvas_result.image_data
-            if np.any(canvas_data):
-                img_drawn = Image.fromarray(canvas_data.astype(np.uint8), "RGBA")
-                cursor_paint = img_drawn.resize((grid_size, grid_size), Image.Resampling.BILINEAR)
+        # Control defensivo contra el RuntimeError interno de streamlit_drawable_canvas
+        if canvas_result is not None:
+            try:
+                canvas_data = canvas_result.image_data
+                if canvas_data is not None and np.any(canvas_data):
+                    img_drawn = Image.fromarray(canvas_data.astype(np.uint8), "RGBA")
+                    cursor_paint = img_drawn.resize((grid_size, grid_size), Image.Resampling.BILINEAR)
 
-                st.divider()
-                col_p1, col_p2 = st.columns(2)
-                
-                with col_p1:
-                    st.write("**Vista Previa del Cursor:**")
-                    st.image(cursor_paint, caption=f"Tamaño: {grid_size}x{grid_size}px", width=128)
-                
-                with col_p2:
-                    st.write("**Exportar diseño:**")
-                    buf_p_ico = io.BytesIO()
-                    cursor_paint.save(buf_p_ico, format="ICO")
+                    st.divider()
+                    col_p1, col_p2 = st.columns(2)
                     
-                    buf_p_png = io.BytesIO()
-                    cursor_paint.save(buf_p_png, format="PNG")
+                    with col_p1:
+                        st.write("**Vista Previa del Cursor:**")
+                        st.image(cursor_paint, caption=f"Tamaño: {grid_size}x{grid_size}px", width=128)
                     
-                    st.download_button(
-                        label="📥 Descargar (.ico)",
-                        data=buf_p_ico.getvalue(),
-                        file_name="cursor_paint.ico",
-                        mime="image/x-icon",
-                        use_container_width=True
-                    )
-                    st.download_button(
-                        label="🖼️ Descargar PNG",
-                        data=buf_p_png.getvalue(),
-                        file_name="cursor_paint.png",
-                        mime="image/png",
-                        use_container_width=True
-                    )
+                    with col_p2:
+                        st.write("**Exportar diseño:**")
+                        buf_p_ico = io.BytesIO()
+                        cursor_paint.save(buf_p_ico, format="ICO")
+                        
+                        buf_p_png = io.BytesIO()
+                        cursor_paint.save(buf_p_png, format="PNG")
+                        
+                        st.download_button(
+                            label="📥 Descargar (.ico)",
+                            data=buf_p_ico.getvalue(),
+                            file_name="cursor_paint.ico",
+                            mime="image/x-icon",
+                            use_container_width=True
+                        )
+                        st.download_button(
+                            label="🖼️ Descargar PNG",
+                            data=buf_p_png.getvalue(),
+                            file_name="cursor_paint.png",
+                            mime="image/png",
+                            use_container_width=True
+                        )
+            except Exception:
+                pass
 
 
 # =========================================================
